@@ -3,6 +3,7 @@ import {
   CustomTransportStrategy,
   ReadPacket,
 } from '@nestjs/microservices';
+import { RedisStreamPattern } from './interfaces';
 
 export class RedisServer extends Server implements CustomTransportStrategy {
   // a list of streams the redis listner will be listening on.
@@ -50,7 +51,7 @@ export class RedisServer extends Server implements CustomTransportStrategy {
     try {
       // check if the passed pattern is stringified object, and parse it. to check
       // isRedisStreamHandler property.
-      let parsedPattern = JSON.parse(pattern);
+      let parsedPattern: RedisStreamPattern = JSON.parse(pattern);
 
       // if is not marked with isRedisStreamHandler to true, dont register it.
       if (!parsedPattern.isRedisStreamHandler) return false;

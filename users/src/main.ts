@@ -4,6 +4,7 @@ import { Transport, MicroserviceOptions } from '@nestjs/microservices';
 import { AppModule } from './app.module';
 import listenForMessage from './users/redis/redis.stream-listner';
 import { USERS_PACKAGE_NAME } from 'sona-proto';
+import { RedisServer } from './redis-streams-strategy/redis.server';
 
 const protoPathTest = require.resolve('sona-proto/out/proto/users.proto');
 
@@ -21,10 +22,11 @@ const microserviceOptions: MicroserviceOptions = {
 };
 
 async function bootstrap() {
-  const app = await NestFactory.createMicroservice(
-    AppModule,
-    microserviceOptions,
-  );
+  const app = await NestFactory.createMicroservice(AppModule, {
+    strategy: new RedisServer({
+      url: 'hola',
+    }),
+  });
 
   await app.listen();
   logger.log(`👍👍 Users microservice is listening on port ${PORT}`);

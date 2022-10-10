@@ -1,0 +1,35 @@
+version: '3.8'
+services:
+  users:
+    build:
+      target: development
+      dockerfile: Dockerfile
+      context: .
+    command: npm run start:migrate
+    volumes:
+      - ./:/usr/src/app
+      - /usr/src/app/node_modules
+    depends_on:
+      - postgres
+      - redis
+    environment:
+      REDIS_URL: redis://redis:6379
+      DATABASE_URL: postgres://user:password@postgres:5432/db?schema=public
+      NODE_ENV: development
+      PORT: 50052
+    ports:
+      - '50052:50052'
+
+  postgres:
+    image: postgres:10.4
+    ports:
+      - '35000:5432'
+    environment:
+      POSTGRES_USER: user
+      POSTGRES_PASSWORD: password
+      POSTGRES_DB: db
+
+  redis:
+    image: redis
+    ports:
+      - '6379:6379'

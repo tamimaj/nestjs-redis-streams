@@ -1,0 +1,74 @@
+syntax = "proto3";
+
+package users;
+
+
+message User {
+    int32 id = 1;
+    string authId = 2;
+    string email = 3;
+    string role = 4;
+    string walletAddress = 5;
+    bool emailVerified = 6;
+    string signInProvider = 7;
+    bool isBlocked = 8;
+    string lastAppLaunch = 9;
+    string createdAt = 10;
+    string updatedAt = 11;
+    
+    string firstName = 12;
+    string lastName = 13;
+    string displayName = 14;
+    string phoneNumber = 15;
+    string avatar = 16;
+    bool isSubscribed = 17;
+}
+
+service UsersService {
+  rpc getUserById (GetUserByIdRequest) returns (GetUserByIdResponse) {}
+  rpc getUserByAuthId (GetUserByAuthIdRequest) returns (GetUserByAuthIdResponse) {}
+  rpc getUsers (GetUsersRequest) returns (GetUsersResponse) {}
+
+  rpc createUser (CreateUserRequest) returns (CreateUserResponse) {}
+  rpc updateUser (UpdateUserRequest) returns (UpdateUserResponse) {}
+}
+
+message GetUserByIdRequest {
+  int32 id = 1;
+}
+message GetUserByIdResponse {
+  User user = 1;
+}
+
+
+message GetUserByAuthIdRequest {
+    string authId = 1;
+}
+message GetUserByAuthIdResponse {
+    User user = 1;
+}
+
+
+message GetUsersRequest {
+    
+}
+message GetUsersResponse {
+    repeated User users = 1;
+}
+
+
+message CreateUserRequest {
+    string authId = 1;
+    string email = 2;
+}
+message CreateUserResponse {
+    User user = 1;
+}
+
+
+message UpdateUserRequest {
+    User user = 1;
+}
+message UpdateUserResponse {
+    User user = 1;
+}

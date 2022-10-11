@@ -18,7 +18,13 @@ export interface RedisStreamOptions {
   block?: number;
 }
 
+export interface Serialization {
+  serializer?: (data: any) => string;
+  deserializer?: (data: string) => any;
+}
+
 export interface ConstructorOptions {
   connection?: RedisConnectionOptions;
   streams?: RedisStreamOptions;
+  serialization?: Serialization;
 }

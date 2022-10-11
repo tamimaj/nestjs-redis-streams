@@ -3,7 +3,7 @@ import {
   CustomTransportStrategy,
   ReadPacket,
 } from '@nestjs/microservices';
-import { RedisStreamPattern } from './interfaces';
+import { ConstructorOptions, RedisStreamPattern } from './interfaces';
 
 export class RedisServer extends Server implements CustomTransportStrategy {
   // a list of streams the redis listner will be listening on.
@@ -11,7 +11,7 @@ export class RedisServer extends Server implements CustomTransportStrategy {
 
   private streamsLastReadIdMap = {};
 
-  constructor(private readonly options: any) {
+  constructor(private readonly options: ConstructorOptions) {
     super();
 
     console.log(options);

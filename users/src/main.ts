@@ -24,7 +24,7 @@ const microserviceOptions: MicroserviceOptions = {
 async function bootstrap() {
   const app = await NestFactory.createMicroservice(AppModule, {
     strategy: new RedisServer({
-      url: 'hola',
+      connection: { url: 'hola' },
     }),
   });
 

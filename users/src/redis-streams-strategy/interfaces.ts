@@ -1,15 +1,9 @@
+import * as Redis from 'ioredis';
+
+export type RedisConnectionOptions = Redis.RedisOptions & { url?: string };
 export interface RedisStreamPattern {
   isRedisStreamHandler: boolean;
   stream: string;
-}
-
-export interface RedisConnectionOptions {
-  url?: string;
-  host?: string;
-  port?: number;
-  username?: string;
-  password?: string;
-  db?: number;
 }
 
 export interface RedisStreamOptions {

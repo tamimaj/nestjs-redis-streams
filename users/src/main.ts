@@ -24,7 +24,9 @@ const microserviceOptions: MicroserviceOptions = {
 async function bootstrap() {
   const app = await NestFactory.createMicroservice(AppModule, {
     strategy: new RedisServer({
-      connection: { url: 'hola' },
+      connection: {
+        url: '0.0.0.0:6379',
+      },
     }),
   });
 
@@ -32,6 +34,6 @@ async function bootstrap() {
   logger.log(`👍👍 Users microservice is listening on port ${PORT}`);
 
   // TEST REDIS STREAM CONSUMING
-  listenForMessage();
+  // listenForMessage();
 }
 bootstrap();

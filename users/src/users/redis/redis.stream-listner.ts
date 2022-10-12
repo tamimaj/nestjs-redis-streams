@@ -4,11 +4,11 @@ import { streamTopics } from './constants';
 
 const REDIS_URL = process.env.REDIS_URL || 'redis://localhost:6379';
 
-let pub = new Redis(REDIS_URL); // differnt client connection. PUBLISHER
-let sub = new Redis(REDIS_URL); // differnt client connection. SUBSCRIBER/LISTNER
 let counter = 1;
 
 export default async function listenForMessage(lastId = '$') {
+  let pub = new Redis(REDIS_URL); // differnt client connection. PUBLISHER
+  let sub = new Redis(REDIS_URL); // differnt client connection. SUBSCRIBER/LISTNER
   let date = new Date();
   let time = date.toLocaleTimeString();
   let mill = date.getMilliseconds();

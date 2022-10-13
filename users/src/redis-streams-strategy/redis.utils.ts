@@ -1,8 +1,10 @@
 import Redis from 'ioredis';
 
-import { RedisConnectionOptions } from './interfaces';
+import { RedisConnectionOptions, RedisInstance } from './interfaces';
 
-export function createRedisConnection(connection?: RedisConnectionOptions) {
+export function createRedisConnection(
+  connection?: RedisConnectionOptions,
+): RedisInstance {
   // connection obj is optional, ioredis handle the default connection to localhost:6379
 
   // if url is supplied, use it as path, and the rest as extra config.

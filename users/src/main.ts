@@ -27,6 +27,10 @@ async function bootstrap() {
       connection: {
         url: '0.0.0.0:6379',
       },
+      streams: {
+        consumer: 'users-1',
+        consumerGroup: 'tamim',
+      },
     }),
   });
 

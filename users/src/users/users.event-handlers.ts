@@ -4,12 +4,16 @@ import { RedisStreamHandler } from 'src/redis-streams-strategy/decorators';
 
 // @Controller()
 export class UsersEventHandlers {
-  //  @RedisStreamHandler("users:create"). it will be mapped to the object below.
+  @RedisStreamHandler('users:create')
+  async handleCreate1(data) {
+    console.log('Handler 1 of users:create called: ', data);
+    return 'hola';
+  }
 
   @RedisStreamHandler('users:create')
-  async handleEventHola(data) {
-    console.log('STREAM EVENT HANDLER CALLED BBBBB', data);
-    return 'hola';
+  async handleCreate2(data) {
+    console.log('Handler 2 of users:create called: ', data);
+    return 'hola 2';
   }
 
   @RedisStreamHandler('users:test')

@@ -30,6 +30,7 @@ async function bootstrap() {
       streams: {
         consumer: 'users-1',
         consumerGroup: 'tamim',
+        block: 5000,
       },
     }),
   });

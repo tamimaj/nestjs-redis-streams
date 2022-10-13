@@ -7,12 +7,15 @@ import {
 
 import { createRedisConnection } from './redis.utils';
 import { CONNECT_EVENT, ERROR_EVENT } from '@nestjs/microservices/constants';
+import { deserialize } from './streams.utils';
 
 export class RedisServer extends Server implements CustomTransportStrategy {
   // a list of streams the redis listner will be listening on.
   private streamsList = [];
 
-  private streamsLastReadIdMap = {};
+  private streamLastReadIdMap = {};
+
+  private streamHandlerMap = {};
 
   private redis: RedisInstance;
 
@@ -29,8 +32,8 @@ export class RedisServer extends Server implements CustomTransportStrategy {
     console.log('REDIS STREAMS STRATEGY STARTED LISTENING...');
     // initilize redis connection.
     this.redis = createRedisConnection(this.options?.connection);
-    // collect handlers from code, and register streams.
 
+    // collect handlers from code, and register streams.
     this.redis.on(CONNECT_EVENT, () => {
       console.log('REDIS CONNECTED');
       // call bind handlers here.
@@ -52,11 +55,40 @@ export class RedisServer extends Server implements CustomTransportStrategy {
     );
 
     // at the end of the loop, after registering the all the redis patterns.
-    console.log('STREAM LIST', this.streamsList);
-    console.log('STREAM Last ID MAP', this.streamsLastReadIdMap);
-    console.log('Simulating: The server now can start listening.');
+    // console.log('STREAM LIST', this.streamsList);
+    // console.log('STREAM Last ID MAP', this.streamLastReadIdMap);
+    // console.log('STREAM HANDLER MAP', this.streamHandlerMap);
+    // console.log('Simulating: The server now can start listening.');
 
     this.listenOnStreams();
+    this.addTestEntries();
+  }
+
+  /// TEST FOR ADDING ENTRIES
+  private async streamSingleEntry(): Promise<void> {
+    const ranNum = Math.round(Math.random() * 5000).toString();
+
+    let fakeUserObj = {
+      id: ranNum.toString(),
+      firstName: 'Tamim',
+      lastName: 'Abbas',
+    };
+
+    let response = await this.redis.xadd(
+      'users:create',
+      '*',
+      'user',
+      JSON.stringify(fakeUserObj),
+    );
+    console.log('xAdd response: ', response);
+  }
+  /// TEST FOR ADDING ENTRIES
+  private async addTestEntries() {
+    try {
+      setInterval(this.streamSingleEntry.bind(this), 10000);
+    } catch (error) {
+      console.log(error);
+    }
   }
 
   private async registerStream(pattern: string) {
@@ -70,10 +102,14 @@ export class RedisServer extends Server implements CustomTransportStrategy {
 
       // register stream locally.
       let { stream } = parsedPattern;
-
+      // for streams array
       this.streamsList.push(stream);
 
-      this.streamsLastReadIdMap[stream] = '$';
+      // for stream lastId Map
+      this.streamLastReadIdMap[stream] = '$';
+
+      // for stream handler map.
+      this.streamHandlerMap[stream] = this.messageHandlers.get(pattern);
 
       // create consumer group here. if it does not exist for the stream.
       let consumerGroupCreated = await this.createConsumerGroup(
@@ -114,21 +150,29 @@ export class RedisServer extends Server implements CustomTransportStrategy {
         );
         return true;
       } else {
-        console.log('CREATING CONSUMER GROUP ERROR:', error);
+        this.logger.error(error);
         return false;
       }
     }
   }
 
+  private async notifyHandlers(stream: string, messages: any[]) {
+    try {
+      const handler = this.streamHandlerMap[stream];
+
+      await Promise.all(
+        messages.map(async (message) => {
+          let response = await deserialize(message);
+          await handler(response);
+        }),
+      );
+    } catch (error) {}
+  }
+
   private async listenOnStreams() {
-    // read the streams from the list
-    // use the optional block if exist else.
-    // have a function that handle the BLOCK replace if the it doesnt exit from options.
-    // have a function that create a CONSUMER GROUP IF IT DOES NOT EXIT
-    // start recursive listner.
     try {
       console.log('Started XreadGroup Listning...');
-      const results = await this.redis.xreadgroup(
+      const results: any[] = await this.redis.xreadgroup(
         'GROUP',
         this.options?.streams?.consumerGroup,
         this.options?.streams?.consumer,
@@ -141,13 +185,21 @@ export class RedisServer extends Server implements CustomTransportStrategy {
       );
 
       console.log(results);
+
+      // if BLOCK finished and results are null
+      if (!results) return this.listenOnStreams();
+
+      const [key, messages] = results[0];
+
+      await this.notifyHandlers(key, messages);
+
+      return this.listenOnStreams();
     } catch (error) {
-      console.log('ERROR from listener', error);
+      this.logger.error(error);
     }
   }
 
   public close() {
     this.redis && this.redis.quit();
-    console.log('REDIS STRATEGY CLOSED');
   }
 }

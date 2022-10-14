@@ -8,6 +8,7 @@ import {
 import { createRedisConnection } from './redis.utils';
 import { CONNECT_EVENT, ERROR_EVENT } from '@nestjs/microservices/constants';
 import { deserialize } from './streams.utils';
+import { RedisStreamContext } from './stream.context';
 
 export class RedisServer extends Server implements CustomTransportStrategy {
   // a list of streams the redis listner will be listening on.
@@ -53,12 +54,6 @@ export class RedisServer extends Server implements CustomTransportStrategy {
         // console.log(response);
       }),
     );
-
-    // at the end of the loop, after registering the all the redis patterns.
-    // console.log('STREAM LIST', this.streamsList);
-    // console.log('STREAM Last ID MAP', this.streamLastReadIdMap);
-    // console.log('STREAM HANDLER MAP', this.streamHandlerMap);
-    // console.log('Simulating: The server now can start listening.');
 
     this.listenOnStreams();
     this.addTestEntries();
@@ -163,7 +158,15 @@ export class RedisServer extends Server implements CustomTransportStrategy {
       await Promise.all(
         messages.map(async (message) => {
           let response = await deserialize(message);
-          await handler(response);
+          // create context
+          let ctx = new RedisStreamContext([
+            stream,
+            message,
+            this.options.streams.consumerGroup,
+            this.options.streams.consumer,
+          ]);
+
+          await handler(response, ctx);
         }),
       );
     } catch (error) {}

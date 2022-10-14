@@ -25,3 +25,9 @@ export interface ConstructorOptions {
   streams?: RedisStreamOptions;
   serialization?: Serialization;
 }
+
+export interface StreamPayload {
+  id: string;
+  key: string;
+  value: any;
+}

@@ -19,7 +19,7 @@ export default async function listenForMessage(lastId = '$') {
     'BLOCK',
     0,
     'STREAMS',
-    'users:microservice:test',
+    'users:create',
     lastId,
   );
 

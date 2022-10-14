@@ -97,6 +97,7 @@ export class RedisServer extends Server implements CustomTransportStrategy {
 
       // register stream locally.
       let { stream } = parsedPattern;
+
       // for streams array
       this.streamsList.push(stream);
 
@@ -106,7 +107,10 @@ export class RedisServer extends Server implements CustomTransportStrategy {
       // for stream handler map.
       this.streamHandlerMap[stream] = this.messageHandlers.get(pattern);
 
-      // create consumer group here. if it does not exist for the stream.
+      // if using Xread, retun here dont create consumer group.
+      if (this.options?.streams?.useXread) return true;
+
+      // if using XreadGroup, create consumer group here.
       let consumerGroupCreated = await this.createConsumerGroup(
         stream,
         this.options?.streams?.consumerGroup,
@@ -162,32 +166,54 @@ export class RedisServer extends Server implements CustomTransportStrategy {
           let ctx = new RedisStreamContext([
             stream,
             message,
-            this.options.streams.consumerGroup,
-            this.options.streams.consumer,
+            this.options?.streams?.consumerGroup,
+            this.options?.streams?.consumer,
+            this.options?.streams?.useXread ? 'Xread' : 'XreadGroup', // the command used to read
           ]);
 
           await handler(response, ctx);
         }),
       );
-    } catch (error) {}
+    } catch (error) {
+      console.log('Error from notifying handlers.', error);
+    }
+  }
+
+  private updateStreamLastReadId(stream: string, messages: any[]) {
+    this.streamLastReadIdMap[stream] = messages[messages.length - 1][0];
   }
 
   private async listenOnStreams() {
     try {
-      console.log('Started XreadGroup Listning...');
-      const results: any[] = await this.redis.xreadgroup(
-        'GROUP',
-        this.options?.streams?.consumerGroup,
-        this.options?.streams?.consumer,
-        'BLOCK',
-        this.options?.streams?.block || 0,
-        'STREAMS',
-        ...this.streamsList,
-        ...this.streamsList.map((stream) => '>'),
-        // '>', // this needed for xreadgroup
-      );
+      let results: any[];
 
-      console.log(results);
+      if (this.options?.streams?.useXread) {
+        console.log('Started Xread Listning...');
+
+        results = await this.redis.xread(
+          'BLOCK',
+          this.options?.streams?.block || 0,
+          'STREAMS',
+          ...(Object.keys(this.streamLastReadIdMap) as string[]),
+          ...(Object.values(this.streamLastReadIdMap) as string[]),
+        );
+      } else {
+        console.log('Started XreadGroup Listning...');
+
+        results = await this.redis.xreadgroup(
+          'GROUP',
+          this.options?.streams?.consumerGroup || undefined,
+          this.options?.streams?.consumer || undefined, // need to make it throw an error.
+          'BLOCK',
+          this.options?.streams?.block || 0,
+          'STREAMS',
+          ...this.streamsList,
+          ...this.streamsList.map((stream) => '>'),
+          // '>', // this needed for xreadgroup
+        );
+      }
+
+      console.log('Results ', results);
 
       // if BLOCK finished and results are null
       if (!results) return this.listenOnStreams();
@@ -195,6 +221,12 @@ export class RedisServer extends Server implements CustomTransportStrategy {
       const [key, messages] = results[0];
 
       await this.notifyHandlers(key, messages);
+
+      // if using Xread, need to update the last Id map.
+      if (this.options?.streams?.useXread) {
+        this.updateStreamLastReadId(key, messages);
+        console.log('Updated the streams.', this.streamLastReadIdMap);
+      }
 
       return this.listenOnStreams();
     } catch (error) {

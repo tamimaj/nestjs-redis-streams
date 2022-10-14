@@ -38,7 +38,7 @@ export interface Serialization {
 
 export interface ConstructorOptions {
   connection?: RedisConnectionOptions;
-  streams?: RedisStreamOptions;
+  streams: RedisStreamOptions;
   serialization?: Serialization;
 }
 

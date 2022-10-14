@@ -22,4 +22,8 @@ export class RedisStreamContext extends BaseRpcContext<RedisStreamContextArgs> {
   getConsumer(): string {
     return this.args[3];
   }
+
+  getReadCommand(): string {
+    return this.args[4];
+  }
 }

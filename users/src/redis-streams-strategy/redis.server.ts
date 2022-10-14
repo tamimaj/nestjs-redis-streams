@@ -161,7 +161,7 @@ export class RedisServer extends Server implements CustomTransportStrategy {
 
       await Promise.all(
         messages.map(async (message) => {
-          let response = await deserialize(message);
+          let payload = await deserialize(message);
           // create context
           let ctx = new RedisStreamContext([
             stream,
@@ -171,7 +171,7 @@ export class RedisServer extends Server implements CustomTransportStrategy {
             this.options?.streams?.useXread ? 'Xread' : 'XreadGroup', // the command used to read
           ]);
 
-          await handler(response, ctx);
+          await handler(payload, ctx);
         }),
       );
     } catch (error) {

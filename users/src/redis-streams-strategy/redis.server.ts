@@ -9,6 +9,7 @@ import { createRedisConnection } from './redis.utils';
 import { CONNECT_EVENT, ERROR_EVENT } from '@nestjs/microservices/constants';
 import { deserialize } from './streams.utils';
 import { RedisStreamContext } from './stream.context';
+import { Observable } from 'rxjs';
 
 export class RedisServer extends Server implements CustomTransportStrategy {
   // a list of streams the redis listner will be listening on.
@@ -50,6 +51,7 @@ export class RedisServer extends Server implements CustomTransportStrategy {
     // before spinning up the server listner.
     await Promise.all(
       Array.from(this.messageHandlers.keys()).map(async (pattern: string) => {
+        console.log(this.messageHandlers.get(pattern));
         let response = await this.registerStream(pattern);
         // console.log(response);
       }),
@@ -155,6 +157,19 @@ export class RedisServer extends Server implements CustomTransportStrategy {
     }
   }
 
+  private async handleRespondBack({ response, isDisposed }) {
+    // if response is undefined means user did not return anything.
+    // if it is null, mean the user returned null.
+    // in both cases means user dont want to publish back anything, neather ACK anything.
+    if (!response) return;
+
+    const [payload, ctx] = response;
+
+    console.log('RESPONSE BACK', response);
+    console.log('PAYLOAD BACK', payload);
+    console.log('ctx BACK', ctx);
+  }
+
   private async notifyHandlers(stream: string, messages: any[]) {
     try {
       const handler = this.streamHandlerMap[stream];
@@ -171,7 +186,13 @@ export class RedisServer extends Server implements CustomTransportStrategy {
             this.options?.streams?.useXread ? 'Xread' : 'XreadGroup', // the command used to read
           ]);
 
-          await handler(payload, ctx);
+          const response$ = this.transformToObservable(
+            await handler(payload, ctx),
+          ) as Observable<any>;
+
+          response$ && this.send(response$, this.handleRespondBack);
+
+          // await handler(payload, ctx);
         }),
       );
     } catch (error) {

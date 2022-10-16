@@ -20,14 +20,21 @@ export class UsersEventHandlers {
     console.log('Handler 1 of users:create called Payload: ', payload);
     console.log('Handler 1 of users:create CTX: ', ctx);
     console.log('Handler 1 stream from context', ctx.getStream());
-    return 'hola';
+
+    return [
+      {
+        key: 'USER',
+        value: '1234123124124',
+      },
+      ctx,
+    ];
   }
 
-  @RedisStreamHandler('users:create')
-  async handleCreate2({ id, key, value }) {
-    console.log('Handler 2 of users:create called: ', value);
-    return 'hola 2';
-  }
+  // @RedisStreamHandler('users:create')
+  // async handleCreate2({ id, key, value }) {
+  //   console.log('Handler 2 of users:create called: ', value);
+  //   return 'hola 2';
+  // }
 
   @RedisStreamHandler('users:test')
   async doDifferentThingsForTheSameStream(payload) {

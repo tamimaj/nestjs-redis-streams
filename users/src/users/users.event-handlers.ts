@@ -21,13 +21,15 @@ export class UsersEventHandlers {
     console.log('Handler 1 of users:create CTX: ', ctx);
     console.log('Handler 1 stream from context', ctx.getStream());
 
-    return [
-      {
-        key: 'USER',
-        value: '1234123124124',
-      },
-      ctx,
-    ];
+    return [];
+
+    // return [
+    //   {
+    //     key: 'USER',
+    //     value: '1234123124124',
+    //   }, //
+    //   ctx, // new context here
+    // ];
   }
 
   // @RedisStreamHandler('users:create')

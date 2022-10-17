@@ -15,6 +15,14 @@ export class RedisStreamContext extends BaseRpcContext<RedisStreamContextArgs> {
     return this.args[1];
   }
 
+  getMessageId(): string {
+    return this.args[1][0];
+  }
+
+  getMessagePayload(): string {
+    return this.args[1][1];
+  }
+
   getConsumerGroup(): string {
     return this.args[2];
   }

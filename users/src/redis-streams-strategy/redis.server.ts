@@ -51,7 +51,6 @@ export class RedisServer extends Server implements CustomTransportStrategy {
     // before spinning up the server listner.
     await Promise.all(
       Array.from(this.messageHandlers.keys()).map(async (pattern: string) => {
-        console.log(this.messageHandlers.get(pattern));
         let response = await this.registerStream(pattern);
         // console.log(response);
       }),
@@ -157,17 +156,43 @@ export class RedisServer extends Server implements CustomTransportStrategy {
     }
   }
 
-  private async handleRespondBack({ response, isDisposed }) {
-    // if response is undefined means user did not return anything.
-    // if it is null, mean the user returned null.
-    // in both cases means user dont want to publish back anything, neather ACK anything.
-    if (!response) return;
+  private async handleRespondBack({
+    response,
+    inboundContext,
+    isDisposed,
+  }: {
+    response: any;
+    inboundContext: RedisStreamContext;
+    isDisposed: boolean;
+  }) {
+    try {
+      console.log('Respond back called with response: ', response);
 
-    const [payload, ctx] = response;
+      console.log(
+        'Respond back called with context: ',
+        inboundContext.getMessageId(),
+      );
 
-    console.log('RESPONSE BACK', response);
-    console.log('PAYLOAD BACK', payload);
-    console.log('ctx BACK', ctx);
+      // if null or undefined, do not ACK, neither publish anything.
+      if (!response) return;
+
+      // if response is empty array then, only ACK.
+      if (Array.isArray(response) && response.length === 0) {
+        // only ACK here.
+        console.log('Will ACK only');
+        return;
+      }
+
+      if (Array.isArray(response) && response.length >= 1) {
+        // will loop and publish all payloads,
+        // then will ACK
+
+        console.log('Will publish payloads, then ACK here.');
+        return;
+      }
+    } catch (error) {
+      console.log('Error from respond back function: ', error);
+    }
   }
 
   private async notifyHandlers(stream: string, messages: any[]) {
@@ -186,11 +211,21 @@ export class RedisServer extends Server implements CustomTransportStrategy {
             this.options?.streams?.useXread ? 'Xread' : 'XreadGroup', // the command used to read
           ]);
 
+          // the staging function, should attach the inbound context to keep track of
+          //  the message id for ACK, group name, stream name, etc.
+          const stageRespondBack = (responseObj: any) => {
+            // 1- will receive the nestJs response obj => {response, isDisposed}
+            // 2- attach the inbound context on the responseObj "ctx".
+            // 3- call the main respond back responsible function.
+            responseObj.inboundContext = ctx;
+            this.handleRespondBack(responseObj);
+          };
+
           const response$ = this.transformToObservable(
             await handler(payload, ctx),
           ) as Observable<any>;
 
-          response$ && this.send(response$, this.handleRespondBack);
+          response$ && this.send(response$, stageRespondBack);
 
           // await handler(payload, ctx);
         }),

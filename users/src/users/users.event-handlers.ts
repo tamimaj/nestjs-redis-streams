@@ -6,7 +6,10 @@ import {
   Payload,
 } from '@nestjs/microservices';
 import { RedisStreamHandler } from 'src/redis-streams-strategy/decorators';
-import { StreamPayload } from 'src/redis-streams-strategy/interfaces';
+import {
+  StreamPayload,
+  StreamResponse,
+} from 'src/redis-streams-strategy/interfaces';
 import { RedisStreamContext } from 'src/redis-streams-strategy/stream.context';
 
 // @Controller()
@@ -18,18 +21,41 @@ export class UsersEventHandlers {
     @Ctx() ctx: RedisStreamContext,
   ) {
     console.log('Handler 1 of users:create called Payload: ', payload);
-    console.log('Handler 1 of users:create CTX: ', ctx);
-    console.log('Handler 1 stream from context', ctx.getStream());
+    // console.log('Handler 1 of users:create CTX: ', ctx);
+    // console.log('Handler 1 stream from context', ctx.getStream());
 
-    return [];
+    return [
+      {
+        payload: {
+          key: 'user',
+          value: {
+            headers: {
+              authToken: '1234123123',
+              correlationId: '29929929',
+            },
+            data: { name: 'Tamim', lastName: 'Abbas' },
+          },
+        },
+        stream: 'user:created',
+      },
+      {
+        payload: {
+          key: 'user',
+          value: {
+            headers: {
+              authToken: '59786456984995',
+              correlationId: '158956984',
+            },
+            data: { name: 'Ahmad', lastName: 'The CTO' },
+          },
+        },
+        stream: 'user:created:copy',
+      },
+    ] as StreamResponse;
 
-    // return [
-    //   {
-    //     key: 'USER',
-    //     value: '1234123124124',
-    //   }, //
-    //   ctx, // new context here
-    // ];
+    // return [] as StreamResponse;
+
+    // return null;
   }
 
   // @RedisStreamHandler('users:create')

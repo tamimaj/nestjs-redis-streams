@@ -3,13 +3,15 @@ import {
   ConstructorOptions,
   RedisInstance,
   RedisStreamPattern,
+  StreamResponse,
+  StreamResponseObject,
 } from './interfaces';
 
 import { createRedisConnection } from './redis.utils';
 import { CONNECT_EVENT, ERROR_EVENT } from '@nestjs/microservices/constants';
-import { deserialize } from './streams.utils';
+import { deserialize, serialize } from './streams.utils';
 import { RedisStreamContext } from './stream.context';
-import { Observable } from 'rxjs';
+import { interval, Observable } from 'rxjs';
 
 export class RedisServer extends Server implements CustomTransportStrategy {
   // a list of streams the redis listner will be listening on.
@@ -20,6 +22,8 @@ export class RedisServer extends Server implements CustomTransportStrategy {
   private streamHandlerMap = {};
 
   private redis: RedisInstance;
+
+  private client: RedisInstance;
 
   constructor(private readonly options: ConstructorOptions) {
     super();
@@ -32,8 +36,11 @@ export class RedisServer extends Server implements CustomTransportStrategy {
    */
   public listen(callback: () => void) {
     console.log('REDIS STREAMS STRATEGY STARTED LISTENING...');
+
     // initilize redis connection.
     this.redis = createRedisConnection(this.options?.connection);
+
+    this.client = createRedisConnection(this.options?.connection);
 
     // collect handlers from code, and register streams.
     this.redis.on(CONNECT_EVENT, () => {
@@ -156,23 +163,63 @@ export class RedisServer extends Server implements CustomTransportStrategy {
     }
   }
 
+  private async publishResponses(
+    responses: StreamResponseObject[],
+    inboundContext: RedisStreamContext,
+  ) {
+    try {
+      console.log(responses, inboundContext);
+      await Promise.all(
+        responses.map(async (responseObj: StreamResponseObject) => {
+          // serialize the payload value.
+          // modify later to use the user-ladn custom serializer.
+
+          let serializedValue = await serialize(responseObj?.payload?.value);
+
+          let addStreamResponse = await this.client.xadd(
+            responseObj.stream,
+            '*',
+            responseObj.payload.key,
+            serializedValue,
+          );
+        }),
+      );
+      // at this point all streams must be published.
+      return true;
+    } catch (error) {
+      console.log('Error from publish', error);
+      return false;
+    }
+  }
+
+  private async handleAck(inboundContext: RedisStreamContext) {
+    try {
+      // use the inbound context to Xack.
+      let response = await this.client.xack(
+        inboundContext.getStream(),
+        inboundContext.getConsumerGroup(),
+        inboundContext.getMessageId(),
+      );
+
+      console.log('RESPONSE FROM XACK: ', response);
+
+      return true;
+    } catch (error) {
+      console.log('Error from handle Ack', error);
+      return false;
+    }
+  }
+
   private async handleRespondBack({
     response,
     inboundContext,
     isDisposed,
   }: {
-    response: any;
+    response: StreamResponse;
     inboundContext: RedisStreamContext;
     isDisposed: boolean;
   }) {
     try {
-      console.log('Respond back called with response: ', response);
-
-      console.log(
-        'Respond back called with context: ',
-        inboundContext.getMessageId(),
-      );
-
       // if null or undefined, do not ACK, neither publish anything.
       if (!response) return;
 
@@ -180,6 +227,7 @@ export class RedisServer extends Server implements CustomTransportStrategy {
       if (Array.isArray(response) && response.length === 0) {
         // only ACK here.
         console.log('Will ACK only');
+        await this.handleAck(inboundContext);
         return;
       }
 
@@ -188,7 +236,16 @@ export class RedisServer extends Server implements CustomTransportStrategy {
         // then will ACK
 
         console.log('Will publish payloads, then ACK here.');
-        return;
+        let publishedResponses = await this.publishResponses(
+          response,
+          inboundContext,
+        );
+
+        if (!publishedResponses) {
+          throw new Error('Could not Xadd response streams.');
+        }
+
+        await this.handleAck(inboundContext);
       }
     } catch (error) {
       console.log('Error from respond back function: ', error);

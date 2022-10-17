@@ -47,3 +47,13 @@ export interface StreamPayload {
   key: string;
   value: any;
 }
+
+export interface StreamResponseObject {
+  payload: {
+    key: string;
+    value: any;
+  };
+  stream: string;
+}
+
+export type StreamResponse = StreamResponseObject[] | [] | null | undefined;

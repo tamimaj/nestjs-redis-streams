@@ -11,6 +11,15 @@ export async function deserialize(message: any) {
   }
 }
 
+export async function serialize(message: any): Promise<string> {
+  try {
+    let stringfied = JSON.stringify(message);
+    return stringfied;
+  } catch (error) {
+    console.log('Error serialize: ', error);
+  }
+}
+
 export async function parseJson(data: string): Promise<any> {
   try {
     let parsed = JSON.parse(data);

@@ -42,16 +42,10 @@ export interface ConstructorOptions {
   serialization?: Serialization;
 }
 
-export interface StreamPayload {
-  id: string;
-  key: string;
-  value: any;
-}
-
 export interface StreamResponseObject {
   payload: {
-    key: string;
-    value: any;
+    headers?: any;
+    data: any;
   };
   stream: string;
 }

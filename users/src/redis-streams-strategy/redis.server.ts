@@ -80,7 +80,11 @@ export class RedisServer extends Server implements CustomTransportStrategy {
     let response = await this.redis.xadd(
       'users:create',
       '*',
-      'user',
+      'headers.correlationId',
+      '12345687987',
+      'headers.authToken',
+      'asiwi2i2i2i2i2i',
+      'data',
       JSON.stringify(fakeUserObj),
     );
     console.log('xAdd response: ', response);
@@ -174,13 +178,15 @@ export class RedisServer extends Server implements CustomTransportStrategy {
           // serialize the payload value.
           // modify later to use the user-ladn custom serializer.
 
-          let serializedValue = await serialize(responseObj?.payload?.value);
+          let serializedEntries = await serialize(
+            responseObj?.payload,
+            inboundContext,
+          );
 
           let addStreamResponse = await this.client.xadd(
             responseObj.stream,
             '*',
-            responseObj.payload.key,
-            serializedValue,
+            ...serializedEntries,
           );
         }),
       );

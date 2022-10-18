@@ -1,4 +1,5 @@
 import { BaseRpcContext } from '@nestjs/microservices/ctx-host/base-rpc.context';
+import { extractHeadersObjFromMessage } from './streams.utils';
 
 declare type RedisStreamContextArgs = string[];
 
@@ -11,6 +12,7 @@ export class RedisStreamContext extends BaseRpcContext<RedisStreamContextArgs> {
     return this.args[0];
   }
 
+  // RAW MESSAGE for custom serialization.
   getMessage(): string {
     return this.args[1];
   }
@@ -19,8 +21,8 @@ export class RedisStreamContext extends BaseRpcContext<RedisStreamContextArgs> {
     return this.args[1][0];
   }
 
-  getMessagePayload(): string {
-    return this.args[1][1];
+  getMessageHeaders(): any {
+    return extractHeadersObjFromMessage(this.getMessage());
   }
 
   getConsumerGroup(): string {

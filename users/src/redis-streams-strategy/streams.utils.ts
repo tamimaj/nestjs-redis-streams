@@ -2,6 +2,7 @@ import { RedisStreamContext } from './stream.context';
 
 export async function deserialize(rawMessage: any) {
   try {
+    console.log('RRAW MESSAGE', rawMessage);
     let dataStrValue = extractDataStrFromMessage(rawMessage);
 
     if (!dataStrValue)

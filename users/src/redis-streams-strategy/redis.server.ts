@@ -175,13 +175,20 @@ export class RedisServer extends Server implements CustomTransportStrategy {
       console.log(responses, inboundContext);
       await Promise.all(
         responses.map(async (responseObj: StreamResponseObject) => {
-          // serialize the payload value.
-          // modify later to use the user-ladn custom serializer.
+          let serializedEntries: string[];
 
-          let serializedEntries = await serialize(
-            responseObj?.payload,
-            inboundContext,
-          );
+          // if custom serializer is provided.
+          if (typeof this.options?.serialization?.serializer === 'function') {
+            serializedEntries = await this.options.serialization.serializer(
+              responseObj?.payload,
+              inboundContext,
+            );
+          } else {
+            serializedEntries = await serialize(
+              responseObj?.payload,
+              inboundContext,
+            );
+          }
 
           let addStreamResponse = await this.client.xadd(
             responseObj.stream,
@@ -264,7 +271,17 @@ export class RedisServer extends Server implements CustomTransportStrategy {
 
       await Promise.all(
         messages.map(async (message) => {
-          let payload = await deserialize(message);
+          let parsedPayload: any;
+
+          // if custom desrializer is provided.
+          if (typeof this.options?.serialization?.deserializer === 'function') {
+            parsedPayload = await this.options.serialization.deserializer(
+              message,
+            );
+          } else {
+            parsedPayload = await deserialize(message);
+          }
+
           // create context
           let ctx = new RedisStreamContext([
             stream,
@@ -285,7 +302,7 @@ export class RedisServer extends Server implements CustomTransportStrategy {
           };
 
           const response$ = this.transformToObservable(
-            await handler(payload, ctx),
+            await handler(parsedPayload, ctx),
           ) as Observable<any>;
 
           response$ && this.send(response$, stageRespondBack);

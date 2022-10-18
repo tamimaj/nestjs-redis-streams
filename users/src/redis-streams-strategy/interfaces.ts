@@ -1,4 +1,5 @@
 import * as Redis from 'ioredis';
+import { RedisStreamContext } from './stream.context';
 
 export type RedisConnectionOptions = Redis.RedisOptions & { url?: string };
 
@@ -31,9 +32,16 @@ export type RedisStreamOptions =
   | RedisStreamOptionsXreadGroup
   | RedisStreamOptionsXread;
 
+// [id, [key, value, key, value]]
+export type RawStreamMessage = [id: string, payload: string[]];
+
 export interface Serialization {
-  serializer?: (data: any) => string;
-  deserializer?: (data: string) => any;
+  deserializer?: (rawMessage: RawStreamMessage) => any | Promise<any>;
+
+  serializer?: (
+    parsedPayload: any,
+    inboundContext: RedisStreamContext,
+  ) => string[] | Promise<string[]>;
 }
 
 export interface ConstructorOptions {

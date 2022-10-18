@@ -5,6 +5,8 @@ import { AppModule } from './app.module';
 import listenForMessage from './users/redis/redis.stream-listner';
 import { USERS_PACKAGE_NAME } from 'sona-proto';
 import { RedisServer } from './redis-streams-strategy/redis.server';
+import { RawStreamMessage } from './redis-streams-strategy/interfaces';
+import { RedisStreamContext } from './redis-streams-strategy/stream.context';
 
 const protoPathTest = require.resolve('sona-proto/out/proto/users.proto');
 
@@ -33,6 +35,56 @@ async function bootstrap() {
         consumer: 'users-1',
         consumerGroup: 'tamim',
       },
+
+      // serialization: {
+      //   deserializer: async (rawMessage: RawStreamMessage) => {
+      //     console.log('Raw message from the custom deserializer: ', rawMessage);
+
+      //     /**
+      //      * For example, extract your data here and leave the headers. Dont worry this
+      //      * raw message is stored as it is in the inbound context. So, when you respond back
+      //      * with the new payload object, your serializer has access to this payload object, plus
+      //      * the inbound context, so you can attach back your headers, to the response message.
+      //      *
+      //      *
+      //      * return to user-land the parsed payload as you like.
+      //      * what you will return here is the what you can access in the user-land
+      //      * by injecting '@Payload'
+      //      */
+
+      //     return { id: 2, name: 'Tamim' };
+      //   },
+
+      //   serializer: async (
+      //     payloadObj: any, // your returned payload object from user-land.
+      //     inboundContext: RedisStreamContext,
+      //   ) => {
+      //     /**
+      //      * The context is created when the inbound message arrived.
+      //      * it contains the raw message before any deserialization.
+      //      * Access the raw message: inboundContext.getMessage()
+      //      *
+      //      *
+      //      * For example get the headers of the inbound message (req message),
+      //      * from the inboundContext. Convert it to key/value then return
+      //      * it with the key/value of the data.
+      //      */
+
+      //     console.log('My response payload object: ', payloadObj);
+      //     console.log('The inbound message context: ', inboundContext);
+
+      //     // your serialization logic here....
+
+      //     return [
+      //       'headers.key1',
+      //       'headers value 1',
+      //       'headers.key2',
+      //       'headers value 2',
+      //       'data',
+      //       'Some Stringified data structure...',
+      //     ];
+      //   },
+      // },
     }),
   });
 

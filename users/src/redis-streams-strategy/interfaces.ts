@@ -10,27 +10,13 @@ export interface RedisStreamPattern {
   stream: string;
 }
 
-interface RedisStreamOptionsBase {
+interface RedisStreamOptionsXreadGroup {
   block?: number;
-}
-
-// using XreadGroup type
-interface RedisStreamOptionsXreadGroup extends RedisStreamOptionsBase {
-  useXread?: false | undefined;
   consumerGroup: string;
   consumer: string;
 }
 
-// using Xread type
-interface RedisStreamOptionsXread extends RedisStreamOptionsBase {
-  useXread: true;
-  consumerGroup?: string;
-  consumer?: string;
-}
-
-export type RedisStreamOptions =
-  | RedisStreamOptionsXreadGroup
-  | RedisStreamOptionsXread;
+export type RedisStreamOptions = RedisStreamOptionsXreadGroup;
 
 // [id, [key, value, key, value]]
 export type RawStreamMessage = [id: string, payload: string[]];
@@ -55,7 +41,7 @@ export interface ConstructorOptions {
 
 export interface StreamResponseObject {
   payload: {
-    headers?: any;
+    [key: string]: any; // any extra keys goes as headers.
     data: any;
   };
   stream: string;

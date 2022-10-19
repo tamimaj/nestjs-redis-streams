@@ -1,4 +1,7 @@
 import { RedisStreamContext } from './stream.context';
+import { Logger } from '@nestjs/common';
+
+let logger = new Logger('RedisStreams/streams-utils');
 
 export async function deserialize(
   rawMessage: any,
@@ -10,18 +13,16 @@ export async function deserialize(
     if (!!!parsedMessageObj?.data)
       throw new Error("Could not find the 'data' key in the message.");
 
-    // prepare headers
     let headers = { ...parsedMessageObj };
-    delete headers.data; // remove data and keep anything left as headers.
-    inboundContext.setMessageHeaders(headers); // add them to context.
+    delete headers.data;
+    inboundContext.setMessageHeaders(headers);
 
-    // parse data. it's JSON.
-    let data = await parseJson(parsedMessageObj.data); // if cannot parse it will return it as it is.
+    let data = await parseJson(parsedMessageObj.data);
 
-    // pass only data to handlers.
     return data;
   } catch (error) {
-    console.log('Error deserialize: ', error);
+    logger.error(error);
+    return null;
   }
 }
 
@@ -35,23 +36,19 @@ export async function serialize(
 
     let contextHeaders = inboundContext.getMessageHeaders();
 
-    // if headers are exists in the payload. will use them to override
-    // the headers in the inbound context. or to add new keys as headers.
-
-    // response final headers.
     let responseObj = {
-      ...contextHeaders, // headers from context
-      ...payload, // headers from payload + data.
+      ...contextHeaders,
+      ...payload,
     };
 
-    // stringify the data from object to JSON string.
     responseObj.data = JSON.stringify(payload?.data);
 
     let stringifiedResponse = stringifyMessage(responseObj);
 
     return stringifiedResponse;
   } catch (error) {
-    console.log('Error serialize: ', error);
+    logger.error(error);
+    return null;
   }
 }
 
@@ -60,35 +57,14 @@ export async function parseJson(data: string): Promise<any> {
     let parsed = JSON.parse(data);
     return parsed;
   } catch (error) {
-    console.log('Could not parse JSON at deserialize', error);
+    logger.verbose(error);
     return data;
   }
 }
 
-export function extractHeadersObjFromMessage(rawMessage: any) {
-  try {
-    let headersObj = {};
-    let payload = rawMessage[1]; // is array of [key, value, key, value]
-    let headersPrefix = 'headers.';
-
-    for (let i = 0; i < payload.length; i++) {
-      if ((payload[i] as string).startsWith(headersPrefix)) {
-        // assign the key without prefix to the headersObj and its value.
-        headersObj[(payload[i] as string).replace(headersPrefix, '')] =
-          payload[i + 1];
-      }
-    }
-
-    return headersObj ?? {};
-  } catch (error) {
-    console.log('ERROR from extracting headers object: ', error);
-  }
-}
-
-// return an object of the raw message of Redis Stream.
 function parseRawMessage(rawMessage: any): any {
   try {
-    let payload = rawMessage[1]; // is array of [key, value, key, value]
+    let payload = rawMessage[1];
 
     let obj = {};
 
@@ -98,24 +74,23 @@ function parseRawMessage(rawMessage: any): any {
 
     return obj;
   } catch (error) {
-    console.log('ERROR from parsing the raw message: ', error);
+    logger.error(error);
+    return null;
   }
 }
 
-// return an object of the raw message of Redis Stream.
 function stringifyMessage(messageObj: any): any {
   try {
     let finalArray = [];
 
     for (let key in messageObj) {
       finalArray.push(key);
-
-      // push its value
       finalArray.push(messageObj[key]);
     }
 
     return finalArray;
   } catch (error) {
-    console.log('ERROR from stringifying the message Obj: ', error);
+    logger.error(error);
+    return null;
   }
 }

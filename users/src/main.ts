@@ -29,7 +29,6 @@ async function bootstrap() {
         url: '0.0.0.0:6379',
       },
       streams: {
-        useXread: false,
         block: 5000,
         consumer: 'users-1',
         consumerGroup: 'tamim',

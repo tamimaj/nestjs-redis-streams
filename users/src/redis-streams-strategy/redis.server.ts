@@ -11,14 +11,9 @@ import { createRedisConnection } from './redis.utils';
 import { CONNECT_EVENT, ERROR_EVENT } from '@nestjs/microservices/constants';
 import { deserialize, serialize } from './streams.utils';
 import { RedisStreamContext } from './stream.context';
-import { interval, Observable } from 'rxjs';
+import { Observable } from 'rxjs';
 
 export class RedisServer extends Server implements CustomTransportStrategy {
-  // a list of streams the redis listner will be listening on.
-  private streamsList = [];
-
-  private streamLastReadIdMap = {};
-
   private streamHandlerMap = {};
 
   private redis: RedisInstance;
@@ -29,42 +24,44 @@ export class RedisServer extends Server implements CustomTransportStrategy {
     super();
   }
 
-  /**
-   * listen() is required by `CustomTransportStrategy` It's called by the
-   * framework when the transporter is instantiated, and kicks off a lot of
-   * the machinery.
-   */
-  public listen(callback: () => void) {
-    console.log('REDIS STREAMS STRATEGY STARTED LISTENING...');
-
-    // initilize redis connection.
+  public listen() {
     this.redis = createRedisConnection(this.options?.connection);
-
     this.client = createRedisConnection(this.options?.connection);
 
-    // collect handlers from code, and register streams.
-    this.redis.on(CONNECT_EVENT, () => {
-      console.log('REDIS CONNECTED');
-      // call bind handlers here.
-      // to ensure creating consumer groups happens
-      // after a redis connection is established.
+    // register instances for error handling.
+    this.handleError(this.redis);
+    this.handleError(this.client);
 
-      this.bindHandlers();
+    // when both instances connect
+    this.redis.on(CONNECT_EVENT, () => {
+      this.client.on(CONNECT_EVENT, () => {
+        this.logger.log(
+          'Redis connected successfully on ' +
+            (this.options.connection?.url ??
+              this.options.connection.host +
+                ':' +
+                this.options.connection.port),
+        );
+
+        this.bindHandlers();
+      });
     });
   }
 
   public async bindHandlers() {
-    // await all the patterns of the handleres to be filtered and registered
-    // before spinning up the server listner.
-    await Promise.all(
-      Array.from(this.messageHandlers.keys()).map(async (pattern: string) => {
-        let response = await this.registerStream(pattern);
-        // console.log(response);
-      }),
-    );
+    try {
+      // collect handlers from user-land, and register the streams.
+      await Promise.all(
+        Array.from(this.messageHandlers.keys()).map(async (pattern: string) => {
+          await this.registerStream(pattern);
+        }),
+      );
 
-    this.listenOnStreams();
-    this.addTestEntries();
+      this.listenOnStreams();
+      this.addTestEntries();
+    } catch (error) {
+      this.logger.error(error);
+    }
   }
 
   /// TEST FOR ADDING ENTRIES
@@ -100,64 +97,40 @@ export class RedisServer extends Server implements CustomTransportStrategy {
 
   private async registerStream(pattern: string) {
     try {
-      // check if the passed pattern is stringified object, and parse it. to check
-      // isRedisStreamHandler property.
       let parsedPattern: RedisStreamPattern = JSON.parse(pattern);
 
-      // if is not marked with isRedisStreamHandler to true, dont register it.
       if (!parsedPattern.isRedisStreamHandler) return false;
 
-      // register stream locally.
       let { stream } = parsedPattern;
 
-      // for streams array
-      this.streamsList.push(stream);
-
-      // for stream lastId Map
-      this.streamLastReadIdMap[stream] = '$';
-
-      // for stream handler map.
       this.streamHandlerMap[stream] = this.messageHandlers.get(pattern);
 
-      // if using Xread, retun here dont create consumer group.
-      if (this.options?.streams?.useXread) return true;
-
-      // if using XreadGroup, create consumer group here.
-      let consumerGroupCreated = await this.createConsumerGroup(
+      await this.createConsumerGroup(
         stream,
         this.options?.streams?.consumerGroup,
       );
 
-      if (!consumerGroupCreated) return false;
-
       return true;
     } catch (error) {
+      // JSON.parse will throw error, if is not parsable.
+      this.logger.debug(error + '. Handler Pattern is: ' + pattern);
       return false;
     }
   }
 
-  // create consumer group for each stream, if it does not exist.
   private async createConsumerGroup(stream: string, consumerGroup: string) {
     try {
-      let response = await this.redis.xgroup(
-        'CREATE',
-        stream,
-        consumerGroup,
-        '$',
-        'MKSTREAM',
-      );
-
-      console.log(response);
+      await this.redis.xgroup('CREATE', stream, consumerGroup, '$', 'MKSTREAM');
 
       return true;
     } catch (error) {
-      // if group exist for this stream. pass it.
+      // if group exist for this stream. log debug.
       if (error?.message.includes('BUSYGROUP')) {
-        console.log(
-          'group',
-          consumerGroup,
-          'already existent for stream: ',
-          stream,
+        this.logger.debug(
+          'Consumer Group "' +
+            consumerGroup +
+            '" already exists for stream: ' +
+            stream,
         );
         return true;
       } else {
@@ -172,7 +145,6 @@ export class RedisServer extends Server implements CustomTransportStrategy {
     inboundContext: RedisStreamContext,
   ) {
     try {
-      console.log(responses, inboundContext);
       await Promise.all(
         responses.map(async (responseObj: StreamResponseObject) => {
           let serializedEntries: string[];
@@ -190,35 +162,28 @@ export class RedisServer extends Server implements CustomTransportStrategy {
             );
           }
 
-          let addStreamResponse = await this.client.xadd(
-            responseObj.stream,
-            '*',
-            ...serializedEntries,
-          );
+          await this.client.xadd(responseObj.stream, '*', ...serializedEntries);
         }),
       );
-      // at this point all streams must be published.
+
       return true;
     } catch (error) {
-      console.log('Error from publish', error);
+      this.logger.error(error);
       return false;
     }
   }
 
   private async handleAck(inboundContext: RedisStreamContext) {
     try {
-      // use the inbound context to Xack.
-      let response = await this.client.xack(
+      await this.client.xack(
         inboundContext.getStream(),
         inboundContext.getConsumerGroup(),
         inboundContext.getMessageId(),
       );
 
-      console.log('RESPONSE FROM XACK: ', response);
-
       return true;
     } catch (error) {
-      console.log('Error from handle Ack', error);
+      this.logger.error(error);
       return false;
     }
   }
@@ -233,22 +198,17 @@ export class RedisServer extends Server implements CustomTransportStrategy {
     isDisposed: boolean;
   }) {
     try {
-      // if null or undefined, do not ACK, neither publish anything.
+      // if response is null or undefined, do not ACK, neither publish anything.
       if (!response) return;
 
-      // if response is empty array then, only ACK.
+      // if response is empty array, only ACK.
       if (Array.isArray(response) && response.length === 0) {
-        // only ACK here.
-        console.log('Will ACK only');
         await this.handleAck(inboundContext);
         return;
       }
 
+      // otherwise, publish response, then Xack.
       if (Array.isArray(response) && response.length >= 1) {
-        // will loop and publish all payloads,
-        // then will ACK
-
-        console.log('Will publish payloads, then ACK here.');
         let publishedResponses = await this.publishResponses(
           response,
           inboundContext,
@@ -261,7 +221,7 @@ export class RedisServer extends Server implements CustomTransportStrategy {
         await this.handleAck(inboundContext);
       }
     } catch (error) {
-      console.log('Error from respond back function: ', error);
+      this.logger.error(error);
     }
   }
 
@@ -271,7 +231,6 @@ export class RedisServer extends Server implements CustomTransportStrategy {
 
       await Promise.all(
         messages.map(async (message) => {
-          // create context
           let ctx = new RedisStreamContext([
             stream,
             message[0], // message id needed for ACK.
@@ -294,9 +253,6 @@ export class RedisServer extends Server implements CustomTransportStrategy {
           // the staging function, should attach the inbound context to keep track of
           //  the message id for ACK, group name, stream name, etc.
           const stageRespondBack = (responseObj: any) => {
-            // 1- will receive the nestJs response obj => {response, isDisposed}
-            // 2- attach the inbound context on the responseObj "ctx".
-            // 3- call the main respond back responsible function.
             responseObj.inboundContext = ctx;
             this.handleRespondBack(responseObj);
           };
@@ -306,63 +262,36 @@ export class RedisServer extends Server implements CustomTransportStrategy {
           ) as Observable<any>;
 
           response$ && this.send(response$, stageRespondBack);
-
-          // await handler(payload, ctx);
         }),
       );
     } catch (error) {
-      console.log('Error from notifying handlers.', error);
+      this.logger.error(error);
     }
-  }
-
-  private updateStreamLastReadId(stream: string, messages: any[]) {
-    this.streamLastReadIdMap[stream] = messages[messages.length - 1][0];
   }
 
   private async listenOnStreams() {
     try {
       let results: any[];
 
-      if (this.options?.streams?.useXread) {
-        console.log('Started Xread Listning...');
+      results = await this.redis.xreadgroup(
+        'GROUP',
+        this.options?.streams?.consumerGroup || undefined,
+        this.options?.streams?.consumer || undefined, // need to make it throw an error.
+        'BLOCK',
+        this.options?.streams?.block || 0,
+        'STREAMS',
+        ...(Object.keys(this.streamHandlerMap) as string[]), // streams keys
+        ...(Object.keys(this.streamHandlerMap) as string[]).map(
+          (stream: string) => '>',
+        ), // '>', this is needed for xreadgroup as id.
+      );
 
-        results = await this.redis.xread(
-          'BLOCK',
-          this.options?.streams?.block || 0,
-          'STREAMS',
-          ...(Object.keys(this.streamLastReadIdMap) as string[]),
-          ...(Object.values(this.streamLastReadIdMap) as string[]),
-        );
-      } else {
-        console.log('Started XreadGroup Listning...');
-
-        results = await this.redis.xreadgroup(
-          'GROUP',
-          this.options?.streams?.consumerGroup || undefined,
-          this.options?.streams?.consumer || undefined, // need to make it throw an error.
-          'BLOCK',
-          this.options?.streams?.block || 0,
-          'STREAMS',
-          ...this.streamsList,
-          ...this.streamsList.map((stream) => '>'),
-          // '>', // this needed for xreadgroup
-        );
-      }
-
-      console.log('Results ', results);
-
-      // if BLOCK finished and results are null
+      // if BLOCK time ended, and results are null, listne again.
       if (!results) return this.listenOnStreams();
 
       const [key, messages] = results[0];
 
       await this.notifyHandlers(key, messages);
-
-      // if using Xread, need to update the last Id map.
-      if (this.options?.streams?.useXread) {
-        this.updateStreamLastReadId(key, messages);
-        console.log('Updated the streams.', this.streamLastReadIdMap);
-      }
 
       return this.listenOnStreams();
     } catch (error) {
@@ -370,7 +299,17 @@ export class RedisServer extends Server implements CustomTransportStrategy {
     }
   }
 
+  // for redis instances. need to add mechanism to try to connect back.
+  public handleError(stream: any) {
+    stream.on(ERROR_EVENT, (err: any) => {
+      this.logger.error('Redis instance error: ' + err);
+      this.close();
+    });
+  }
+
   public close() {
+    // shut down instances.
     this.redis && this.redis.quit();
+    this.client && this.client.quit();
   }
 }

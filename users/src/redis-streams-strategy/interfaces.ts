@@ -36,7 +36,10 @@ export type RedisStreamOptions =
 export type RawStreamMessage = [id: string, payload: string[]];
 
 export interface Serialization {
-  deserializer?: (rawMessage: RawStreamMessage) => any | Promise<any>;
+  deserializer?: (
+    rawMessage: RawStreamMessage,
+    inboundContext: RedisStreamContext,
+  ) => any | Promise<any>;
 
   serializer?: (
     parsedPayload: any,

@@ -9,16 +9,17 @@ export class UsersEventHandlers {
   @RedisStreamHandler('users:create')
   async handleCreate1(@Payload() data: any, @Ctx() ctx: RedisStreamContext) {
     console.log('Handler 1 of users:create called Payload: ', data);
-    console.log('Handler 1 of users:create CTX: ', ctx.getMessage());
+    console.log('Handler 1 of users:create CTX: ', ctx.getMessageHeaders());
 
     return [
       {
         payload: {
-          headers: {
-            // optinal headers to override or add new headers keys.
-            correlationId: 'THE BEST BEST CORRELATION ID EVER',
-            extraKey: 'hola que tal',
-          },
+          // optinal headers to override or add new headers keys.
+          // everything except data is considered headers.
+          correlationId: 'THE BEST BEST CORRELATION ID EVER',
+          extraKey: 'hola que tal',
+
+          // data is the only mandatory key. for our serialzer/deserializer.
           data: { name: 'Tamim', lastName: 'Abbas' },
         },
 
@@ -39,12 +40,6 @@ export class UsersEventHandlers {
 
     // return null;
   }
-
-  // @RedisStreamHandler('users:create')
-  // async handleCreate2({ id, key, value }) {
-  //   console.log('Handler 2 of users:create called: ', value);
-  //   return 'hola 2';
-  // }
 
   @RedisStreamHandler('users:test')
   async doDifferentThingsForTheSameStream(payload) {

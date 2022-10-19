@@ -1,9 +1,10 @@
 import { BaseRpcContext } from '@nestjs/microservices/ctx-host/base-rpc.context';
-import { extractHeadersObjFromMessage } from './streams.utils';
 
 declare type RedisStreamContextArgs = string[];
 
 export class RedisStreamContext extends BaseRpcContext<RedisStreamContextArgs> {
+  private headers: any;
+
   constructor(args: RedisStreamContextArgs) {
     super(args);
   }
@@ -12,17 +13,17 @@ export class RedisStreamContext extends BaseRpcContext<RedisStreamContextArgs> {
     return this.args[0];
   }
 
-  // RAW MESSAGE for custom serialization.
-  getMessage(): string {
+  getMessageId(): string {
     return this.args[1];
   }
 
-  getMessageId(): string {
-    return this.args[1][0];
+  getMessageHeaders(): any {
+    return this.headers;
   }
 
-  getMessageHeaders(): any {
-    return extractHeadersObjFromMessage(this.getMessage());
+  setMessageHeaders(headers: any) {
+    this.headers = headers;
+    return this.headers;
   }
 
   getConsumerGroup(): string {
@@ -31,9 +32,5 @@ export class RedisStreamContext extends BaseRpcContext<RedisStreamContextArgs> {
 
   getConsumer(): string {
     return this.args[3];
-  }
-
-  getReadCommand(): string {
-    return this.args[4];
   }
 }

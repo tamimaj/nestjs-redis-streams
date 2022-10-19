@@ -2,7 +2,6 @@ import { Logger } from '@nestjs/common';
 import { NestFactory } from '@nestjs/core';
 import { Transport, MicroserviceOptions } from '@nestjs/microservices';
 import { AppModule } from './app.module';
-import listenForMessage from './users/redis/redis.stream-listner';
 import { USERS_PACKAGE_NAME } from 'sona-proto';
 import { RedisServer } from './redis-streams-strategy/redis.server';
 import { RawStreamMessage } from './redis-streams-strategy/interfaces';
@@ -37,15 +36,20 @@ async function bootstrap() {
       },
 
       // serialization: {
-      //   deserializer: async (rawMessage: RawStreamMessage) => {
+      //   deserializer: async (
+      //     rawMessage: RawStreamMessage,
+      //     inboundContext: RedisStreamContext,
+      //   ) => {
       //     console.log('Raw message from the custom deserializer: ', rawMessage);
 
       //     /**
-      //      * For example, extract your data here and leave the headers. Dont worry this
-      //      * raw message is stored as it is in the inbound context. So, when you respond back
-      //      * with the new payload object, your serializer has access to this payload object, plus
-      //      * the inbound context, so you can attach back your headers, to the response message.
-      //      *
+      //      * Extract your data from the rawMessage coming from Redis Stream.
+      //      * You can additionally, extract your headers from the rawMessage,
+      //      * and add them to the inboundContext via inboundContext.setMessageHeaders(header).
+      //      * Then you can access those headers in your serializer and attach them back,
+      //      * to the response message that will be sent to Redis Stream. So your user-land handler,
+      //      * is cleaner, and you can alwyas inject the context in your handlers and access
+      //      * those headers, or set them there too.
       //      *
       //      * return to user-land the parsed payload as you like.
       //      * what you will return here is the what you can access in the user-land
@@ -61,13 +65,13 @@ async function bootstrap() {
       //   ) => {
       //     /**
       //      * The context is created when the inbound message arrived.
-      //      * it contains the raw message before any deserialization.
-      //      * Access the raw message: inboundContext.getMessage()
+      //      * it contains the essential data like the messageId, consumer group name,
+      //      * consumer name. We use those data for the automatic ACK.
       //      *
+      //      * You can retrive your headers from your context you set in the deserializer,
+      //      * inboundContext.getMessageHeaders()
       //      *
-      //      * For example get the headers of the inbound message (req message),
-      //      * from the inboundContext. Convert it to key/value then return
-      //      * it with the key/value of the data.
+      //      * Then you can attach them back to your response message and will be on Redis Streams again.
       //      */
 
       //     console.log('My response payload object: ', payloadObj);
@@ -75,11 +79,12 @@ async function bootstrap() {
 
       //     // your serialization logic here....
 
+      //     // Your must return an array of [key1, value1, key2, value2]
       //     return [
-      //       'headers.key1',
-      //       'headers value 1',
-      //       'headers.key2',
-      //       'headers value 2',
+      //       'key1',
+      //       'value 1',
+      //       'key2',
+      //       'value 2',
       //       'data',
       //       'Some Stringified data structure...',
       //     ];

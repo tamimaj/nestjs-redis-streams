@@ -80,9 +80,9 @@ export class RedisServer extends Server implements CustomTransportStrategy {
     let response = await this.redis.xadd(
       'users:create',
       '*',
-      'headers.correlationId',
+      'correlationId',
       '12345687987',
-      'headers.authToken',
+      'authToken',
       'asiwi2i2i2i2i2i',
       'data',
       JSON.stringify(fakeUserObj),
@@ -271,25 +271,25 @@ export class RedisServer extends Server implements CustomTransportStrategy {
 
       await Promise.all(
         messages.map(async (message) => {
+          // create context
+          let ctx = new RedisStreamContext([
+            stream,
+            message[0], // message id needed for ACK.
+            this.options?.streams?.consumerGroup,
+            this.options?.streams?.consumer,
+          ]);
+
           let parsedPayload: any;
 
           // if custom desrializer is provided.
           if (typeof this.options?.serialization?.deserializer === 'function') {
             parsedPayload = await this.options.serialization.deserializer(
               message,
+              ctx,
             );
           } else {
-            parsedPayload = await deserialize(message);
+            parsedPayload = await deserialize(message, ctx);
           }
-
-          // create context
-          let ctx = new RedisStreamContext([
-            stream,
-            message,
-            this.options?.streams?.consumerGroup,
-            this.options?.streams?.consumer,
-            this.options?.streams?.useXread ? 'Xread' : 'XreadGroup', // the command used to read
-          ]);
 
           // the staging function, should attach the inbound context to keep track of
           //  the message id for ACK, group name, stream name, etc.

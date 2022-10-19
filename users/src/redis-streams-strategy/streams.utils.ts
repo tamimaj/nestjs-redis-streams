@@ -1,19 +1,24 @@
 import { RedisStreamContext } from './stream.context';
 
-export async function deserialize(rawMessage: any) {
+export async function deserialize(
+  rawMessage: any,
+  inboundContext: RedisStreamContext,
+) {
   try {
-    console.log('RRAW MESSAGE', rawMessage);
-    let dataStrValue = extractDataStrFromMessage(rawMessage);
+    let parsedMessageObj = parseRawMessage(rawMessage);
 
-    if (!dataStrValue)
+    if (!!!parsedMessageObj?.data)
       throw new Error("Could not find the 'data' key in the message.");
 
-    let data = await parseJson(dataStrValue); // if cannot parse it will return it as it is.
+    // prepare headers
+    let headers = { ...parsedMessageObj };
+    delete headers.data; // remove data and keep anything left as headers.
+    inboundContext.setMessageHeaders(headers); // add them to context.
 
-    /// TEST
-    let headers = extractHeadersObjFromMessage(rawMessage);
-    console.log('TEST HEADERS', headers);
+    // parse data. it's JSON.
+    let data = await parseJson(parsedMessageObj.data); // if cannot parse it will return it as it is.
 
+    // pass only data to handlers.
     return data;
   } catch (error) {
     console.log('Error deserialize: ', error);
@@ -25,24 +30,26 @@ export async function serialize(
   inboundContext: RedisStreamContext,
 ): Promise<string[]> {
   try {
+    if (!!!payload?.data)
+      throw new Error("Could not find the 'data' key in the payload.");
+
     let contextHeaders = inboundContext.getMessageHeaders();
 
-    let payloadHeaders = payload?.headers ?? {};
-
-    // if headers are exists in the payload. use them to override
-    // the headers in the inbound context. or to add new keys to the headers.
+    // if headers are exists in the payload. will use them to override
+    // the headers in the inbound context. or to add new keys as headers.
 
     // response final headers.
-    let responseHeaders = {
-      ...contextHeaders,
-      ...payloadHeaders,
+    let responseObj = {
+      ...contextHeaders, // headers from context
+      ...payload, // headers from payload + data.
     };
 
-    let headersArray = constructHeadersArray(responseHeaders);
+    // stringify the data from object to JSON string.
+    responseObj.data = JSON.stringify(payload?.data);
 
-    let dataStr = JSON.stringify(payload?.data);
+    let stringifiedResponse = stringifyMessage(responseObj);
 
-    return [...headersArray, 'data', dataStr];
+    return stringifiedResponse;
   } catch (error) {
     console.log('Error serialize: ', error);
   }
@@ -78,39 +85,37 @@ export function extractHeadersObjFromMessage(rawMessage: any) {
   }
 }
 
-function extractDataStrFromMessage(rawMessage: any) {
+// return an object of the raw message of Redis Stream.
+function parseRawMessage(rawMessage: any): any {
   try {
     let payload = rawMessage[1]; // is array of [key, value, key, value]
-    let dataKey = 'data';
-    let dataValue: string;
 
-    for (let i = 0; i < payload.length; i++) {
-      if (payload[i] === dataKey) {
-        dataValue = payload[i + 1];
-      }
+    let obj = {};
+
+    for (let i = 0; i < payload.length; i += 2) {
+      obj[payload[i]] = payload[i + 1];
     }
 
-    return dataValue || null;
+    return obj;
   } catch (error) {
-    console.log('ERROR from extracting the data from message: ', error);
+    console.log('ERROR from parsing the raw message: ', error);
   }
 }
 
-function constructHeadersArray(headersObj: any) {
+// return an object of the raw message of Redis Stream.
+function stringifyMessage(messageObj: any): any {
   try {
     let finalArray = [];
 
-    let headersPrefix = 'headers.';
-
-    for (let key in headersObj) {
-      finalArray.push(`${headersPrefix}${key}`);
+    for (let key in messageObj) {
+      finalArray.push(key);
 
       // push its value
-      finalArray.push(headersObj[key]);
+      finalArray.push(messageObj[key]);
     }
 
     return finalArray;
   } catch (error) {
-    console.log('ERROR from constructing headers array: ', error);
+    console.log('ERROR from stringifying the message Obj: ', error);
   }
 }

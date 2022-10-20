@@ -7,23 +7,18 @@ export async function deserialize(
   rawMessage: any,
   inboundContext: RedisStreamContext,
 ) {
-  try {
-    let parsedMessageObj = parseRawMessage(rawMessage);
+  let parsedMessageObj = parseRawMessage(rawMessage);
 
-    if (!!!parsedMessageObj?.data)
-      throw new Error("Could not find the 'data' key in the message.");
+  if (!!!parsedMessageObj?.data)
+    throw new Error("Could not find the 'data' key in the message.");
 
-    let headers = { ...parsedMessageObj };
-    delete headers.data;
-    inboundContext.setMessageHeaders(headers);
+  let headers = { ...parsedMessageObj };
+  delete headers.data;
+  inboundContext.setMessageHeaders(headers);
 
-    let data = await parseJson(parsedMessageObj.data);
+  let data = await parseJson(parsedMessageObj.data);
 
-    return data;
-  } catch (error) {
-    logger.error(error);
-    return null;
-  }
+  return data;
 }
 
 export async function serialize(
@@ -63,20 +58,16 @@ export async function parseJson(data: string): Promise<any> {
 }
 
 function parseRawMessage(rawMessage: any): any {
-  try {
-    let payload = rawMessage[1];
+  let payload = rawMessage[1];
 
-    let obj = {};
+  let obj = {};
 
-    for (let i = 0; i < payload.length; i += 2) {
-      obj[payload[i]] = payload[i + 1];
-    }
-
-    return obj;
-  } catch (error) {
-    logger.error(error);
-    return null;
+  for (let i = 0; i < payload.length; i += 2) {
+    obj[payload[i]] = payload[i + 1];
   }
+
+  return obj;
+
 }
 
 function stringifyMessage(messageObj: any): any {

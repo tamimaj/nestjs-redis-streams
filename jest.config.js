@@ -1,17 +1,23 @@
-require('ts-node/register');
-
 module.exports = {
-  'moduleFileExtensions': [
+  moduleFileExtensions: [
     'js',
     'json',
     'ts',
   ],
-  'rootDir': 'lib',
-  'testRegex': '/lib/.*\\.spec\\.(ts|js)$',
-  'globals': {
-    'ts-jest': {
-      'tsConfig': 'tsconfig.json'
-    }
+  roots: [
+    "<rootDir>/lib"
+  ],
+  testMatch: [
+    "**/test/**/*.+(ts|tsx|js)",
+    "**/?(*.)+(spec|test).+(ts|tsx|js)",
+  ],
+  coveragePathIgnorePatterns: [
+    "/node_modules/"
+  ],
+  transform: {
+    "^.+\\.(ts|tsx)$": "ts-jest"
   },
-  'preset': 'ts-jest',
+  preset: 'ts-jest',
+  collectCoverage: process.env.NODE_ENV != 'Production',
+  // coverageDirectory: "<rootDir>/dist/coverage",
 };

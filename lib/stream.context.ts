@@ -5,6 +5,10 @@ declare type RedisStreamContextArgs = string[];
 export class RedisStreamContext extends BaseRpcContext<RedisStreamContextArgs> {
   private headers: any;
 
+  /**
+   * @param {[string, string, string, string]} args - [stream_key, message_id, group, consumer]
+   * @returns {RedisStreamContext} Stream Context
+   */
   constructor(args: RedisStreamContextArgs) {
     super(args);
   }

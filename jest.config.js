@@ -1,9 +1,5 @@
 module.exports = {
-  moduleFileExtensions: [
-    'js',
-    'json',
-    'ts',
-  ],
+
   roots: [
     "<rootDir>/lib"
   ],
@@ -19,5 +15,4 @@ module.exports = {
   },
   preset: 'ts-jest',
   collectCoverage: process.env.NODE_ENV != 'Production',
-  // coverageDirectory: "<rootDir>/dist/coverage",
 };

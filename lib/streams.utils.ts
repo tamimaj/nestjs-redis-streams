@@ -30,10 +30,10 @@ export async function serialize(
   payload: any,
   inboundContext: RedisStreamContext,
 ): Promise<string[]> {
-  try {
-    if (!!!payload?.data)
-      throw new Error("Could not find the 'data' key in the payload.");
+  if (!!!payload.data)
+    throw new Error("Could not find the 'data' key in the payload.");
 
+  try {
     let contextHeaders = inboundContext.getMessageHeaders();
 
     let responseObj = {

@@ -33,13 +33,13 @@ jobs:
         uses: actions/cache@v3
         with:
           path: |
-            '~/.npm'
-            '**/node_modules'
+            - ~/.npm
+            - **/node_modules
           key: npm-${{ hashFiles('package-lock.json') }}
           restore-keys: npm-
 
       - name: Install dependencies
-        run: npm install
+        run: npm install --only=dev
 
       - name: Run tests and collect coverage
         run: npm test -- --coverage

@@ -5,24 +5,25 @@ import {
   RedisStreamContext,
 } from 'nestjs-redis-streams';
 
-// @Controller()
 export class UsersEventHandlers {
-  // NOTE when calling Ctx need to call Payload too, or data will be undefined.
+  // NOTICE when calling @Ctx need to call @Payload too, or data will be undefined.
   @RedisStreamHandler('users:create')
   async handleCreate1(@Payload() data: any, @Ctx() ctx: RedisStreamContext) {
     console.log('Handler users:create called with payload: ', data);
     console.log('Headers: ', ctx.getMessageHeaders());
+    console.log('messageId: ', ctx.getMessageId());
 
     return [
       {
         payload: {
-          // optinal headers to override or add new headers keys.
+          // optional headers to override or add new headers keys.
           // everything except data is considered headers.
-          correlationId: 'THE BEST BEST CORRELATION ID EVER',
-          extraKey: 'hola que tal',
+          correlationId:
+            'Any new correlationId thats override the inbound message one.',
+          extraKey: 'Any extra key',
 
-          // data is the only mandatory key. for our serialzer/deserializer.
-          data: { name: 'Tamim', lastName: 'Abbas' },
+          // data is the only mandatory key. for our serializer/deserializer.
+          data: { name: 'Ali', lastName: 'Mahdavi' },
         },
 
         stream: 'user:created',
@@ -30,8 +31,8 @@ export class UsersEventHandlers {
 
       {
         payload: {
-          // no headers, will use the original headers of the req from inbound context.
-          data: { name: 'Tamim', lastName: 'Abbas' },
+          // no headers, will use the original headers of the inbound stream message, if they exist.
+          data: { name: 'John', lastName: 'Smith' },
         },
 
         stream: 'user:created:copy',
@@ -43,20 +44,15 @@ export class UsersEventHandlers {
     // return null;
   }
 
-  @RedisStreamHandler('users:test')
-  async doDifferentThingsForTheSameStream(payload) {
-    console.log('STREAM SECOND EVENT HANDLER GOT CALLED  =>', payload);
-    return 'hola';
-  }
-
   @RedisStreamHandler('users:update')
-  async handleUserUpdate(payload) {
-    console.log('STREAM SECOND EVENT HANDLER GOT CALLED  =>', payload);
-    return 'hola';
+  async handleUserUpdate(payload: any) {
+    console.log('Handler users:update called with payload', payload);
+    return [] as StreamResponse; // Won't publish anything back, only ACK.
   }
 
-  @MessagePattern('irrelevent-handler')
-  async handleMessageHola() {
-    return 'hola';
+  // this handler won't be registered for any streams listening.
+  @MessagePattern('irrelevant-handler')
+  async irrelevantHandlerForStreams() {
+    return 'Hello World.';
   }
 }

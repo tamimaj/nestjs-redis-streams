@@ -5,6 +5,7 @@ import {
   RawStreamMessage,
   RedisStreamContext,
 } from 'nestjs-redis-streams';
+import { streamTestEntries } from './users/redis-test/redis-stream-entries';
 
 async function bootstrap() {
   const app = await NestFactory.createMicroservice(AppModule, {
@@ -31,7 +32,7 @@ async function bootstrap() {
       //      * and add them to the inboundContext via inboundContext.setMessageHeaders(header).
       //      * Then you can access those headers in your serializer and attach them back,
       //      * to the response message that will be sent to Redis Stream. So your user-land handler,
-      //      * is cleaner, and you can alwyas inject the context in your handlers and access
+      //      * is cleaner, and you can always inject the context in your handlers and access
       //      * those headers, or set them there too.
       //      *
       //      * return to user-land the parsed payload as you like.
@@ -51,7 +52,7 @@ async function bootstrap() {
       //      * it contains the essential data like the messageId, consumer group name,
       //      * consumer name. We use those data for the automatic ACK.
       //      *
-      //      * You can retrive your headers from your context you set in the deserializer,
+      //      * You can retrieve your headers from your context you set in the deserializer,
       //      * inboundContext.getMessageHeaders()
       //      *
       //      * Then you can attach them back to your response message and will be on Redis Streams again.
@@ -77,5 +78,8 @@ async function bootstrap() {
   });
 
   await app.listen();
+
+  // stream test entries to test the strategy listener...
+  await streamTestEntries('localhost:6379');
 }
 bootstrap();

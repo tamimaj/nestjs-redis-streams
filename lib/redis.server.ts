@@ -27,7 +27,7 @@ export class RedisStreamStrategy
     super();
   }
 
-  public listen() {
+  public listen(callback: () => void) {
     this.redis = createRedisConnection(this.options?.connection);
     this.client = createRedisConnection(this.options?.connection);
 
@@ -47,6 +47,10 @@ export class RedisStreamStrategy
         );
 
         this.bindHandlers();
+
+        // Essential. or await app.listen() will hang forever.
+        // Any code after it won't work.
+        callback();
       });
     });
   }
@@ -61,40 +65,8 @@ export class RedisStreamStrategy
       );
 
       this.listenOnStreams();
-      this.addTestEntries();
     } catch (error) {
       this.logger.error(error);
-    }
-  }
-
-  /// TEST FOR ADDING ENTRIES
-  private async streamSingleEntry(): Promise<void> {
-    const ranNum = Math.round(Math.random() * 5000).toString();
-
-    let fakeUserObj = {
-      id: ranNum.toString(),
-      firstName: 'Tamim',
-      lastName: 'Abbas',
-    };
-
-    let response = await this.redis.xadd(
-      'users:create',
-      '*',
-      'correlationId',
-      '12345687987',
-      'authToken',
-      'asiwi2i2i2i2i2i',
-      'data',
-      JSON.stringify(fakeUserObj),
-    );
-    console.log('xAdd response: ', response);
-  }
-  /// TEST FOR ADDING ENTRIES
-  private async addTestEntries() {
-    try {
-      setInterval(this.streamSingleEntry.bind(this), 10000);
-    } catch (error) {
-      console.log(error);
     }
   }
 

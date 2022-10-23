@@ -3,6 +3,7 @@ import * as sinon from 'sinon';
 import { RedisInstance, RedisStreamStrategy } from '.';
 
 describe('[Redis Server]', () => {
+  it("", () => { })
   // const server = new RedisStreamStrategy({
   //   connection: { url: "redis://localhost" },
   //   streams: { consumerGroup: "group", consumer: "consumer" }

@@ -15,8 +15,7 @@ import { Observable } from 'rxjs';
 
 export class RedisStreamStrategy
   extends Server
-  implements CustomTransportStrategy
-{
+  implements CustomTransportStrategy {
   private streamHandlerMap = {};
 
   private redis: RedisInstance;
@@ -40,10 +39,10 @@ export class RedisStreamStrategy
       this.client.on(CONNECT_EVENT, () => {
         this.logger.log(
           'Redis connected successfully on ' +
-            (this.options.connection?.url ??
-              this.options.connection.host +
-                ':' +
-                this.options.connection.port),
+          (this.options.connection?.url ??
+            this.options.connection.host +
+            ':' +
+            this.options.connection.port),
         );
 
         this.bindHandlers();
@@ -67,6 +66,7 @@ export class RedisStreamStrategy
       this.listenOnStreams();
     } catch (error) {
       this.logger.error(error);
+      throw error;
     }
   }
 
@@ -103,9 +103,9 @@ export class RedisStreamStrategy
       if (error?.message.includes('BUSYGROUP')) {
         this.logger.debug(
           'Consumer Group "' +
-            consumerGroup +
-            '" already exists for stream: ' +
-            stream,
+          consumerGroup +
+          '" already exists for stream: ' +
+          stream,
         );
         return true;
       } else {

@@ -35,7 +35,7 @@ describe("[Stream Utils]", () => {
         })
         test("Should Serialize Payload with the context ", async () => {
             let serialized = await serialize({ data }, ctx)
-            console.log(serialized)
+            // console.log(serialized)
             expect(serialized[serialized.length - 1]).toEqual(JSON.stringify(data))
 
             let i = 0;

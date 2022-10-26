@@ -35,7 +35,7 @@
     "url": "https://github.com/tamimaj/nestjs-redis-streams/issues"
   },
   "homepage": "https://github.com/tamimaj/nestjs-redis-streams#readme",
-  "peerDependencies": {
+  "Dependencies": {
     "@nestjs/common": "^9.0.0",
     "@nestjs/microservices": "^9.0.0",
     "ioredis": "^5.2.3",

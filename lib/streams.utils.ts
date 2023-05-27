@@ -1,5 +1,6 @@
 import { RedisStreamContext } from './stream.context';
 import { Logger } from '@nestjs/common';
+import { v4 as uuidv4 } from 'uuid';
 
 let logger = new Logger('RedisStreams/streams-utils');
 
@@ -57,7 +58,7 @@ export async function parseJson(data: string): Promise<any> {
   }
 }
 
-function parseRawMessage(rawMessage: any): any {
+export function parseRawMessage(rawMessage: any): any {
   let payload = rawMessage[1];
 
   let obj = {};
@@ -67,10 +68,9 @@ function parseRawMessage(rawMessage: any): any {
   }
 
   return obj;
-
 }
 
-function stringifyMessage(messageObj: any): any {
+export function stringifyMessage(messageObj: any): any {
   try {
     let finalArray = [];
 
@@ -84,4 +84,8 @@ function stringifyMessage(messageObj: any): any {
     logger.error(error);
     return null;
   }
+}
+
+export function generateCorrelationId() {
+  return uuidv4();
 }

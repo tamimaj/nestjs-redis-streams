@@ -392,7 +392,7 @@ export class RedisStreamClient extends ClientProxy {
 
   public handleError(stream: any) {
     stream.on(ERROR_EVENT, (err: any) => {
-      this.logger.error('Redis Streams Client Error' + err);
+      this.logger.error('Redis Streams Client ' + err);
       this.close();
     });
   }

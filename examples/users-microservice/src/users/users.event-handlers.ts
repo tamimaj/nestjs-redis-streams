@@ -26,7 +26,7 @@ export class UsersEventHandlers {
           data: { name: 'Ali', lastName: 'Mahdavi' },
         },
 
-        stream: 'user:created',
+        stream: 'users:created',
       },
 
       {
@@ -35,7 +35,7 @@ export class UsersEventHandlers {
           data: { name: 'John', lastName: 'Smith' },
         },
 
-        stream: 'user:created:copy',
+        stream: 'users:created:copy',
       },
     ] as StreamResponse;
 

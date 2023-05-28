@@ -5,7 +5,6 @@ import {
   RawStreamMessage,
   RedisStreamContext,
 } from '@tamimaj/nestjs-redis-streams';
-import { streamTestEntries } from './users/redis-test/redis-stream-entries';
 
 async function bootstrap() {
   const app = await NestFactory.createMicroservice(AppModule, {
@@ -78,8 +77,5 @@ async function bootstrap() {
   });
 
   await app.listen();
-
-  // stream test entries to test the strategy listener...
-  await streamTestEntries('localhost:6379');
 }
 bootstrap();

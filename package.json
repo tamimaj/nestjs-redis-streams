@@ -1,6 +1,6 @@
 {
   "name": "@tamimaj/nestjs-redis-streams",
-  "version": "0.0.4",
+  "version": "1.0.0",
   "description": "Redis Streams Transport for NestJS.",
   "author": "Tamim Abbas Aljuratli <https://tamim.es>",
   "private": false,
@@ -14,6 +14,7 @@
     "build": "tsc -p tsconfig.json",
     "format": "prettier **/**/*.ts --ignore-path ./.prettierignore --write",
     "test": "jest",
+    "test:cov": "jest --coverage",
     "deploy": "npm publish --access public"
   },
   "repository": {
@@ -39,7 +40,8 @@
     "@nestjs/common": "^9.0.0",
     "@nestjs/microservices": "^9.0.0",
     "ioredis": "^5.2.3",
-    "rxjs": "^7.2.0"
+    "rxjs": "^7.2.0",
+    "uuid": "^9.0.0"
   },
   "devDependencies": {
     "@nestjs/testing": "^9.0.0",

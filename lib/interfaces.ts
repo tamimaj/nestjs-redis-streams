@@ -1,3 +1,4 @@
+import { ModuleMetadata, Type } from '@nestjs/common';
 import * as Redis from 'ioredis';
 import { RedisStreamContext } from './stream.context';
 
@@ -39,6 +40,10 @@ export interface ConstructorOptions {
   serialization?: Serialization;
 }
 
+export interface ClientConstructorOptions extends ConstructorOptions {
+  responseStreams?: string[];
+}
+
 export interface StreamResponseObject {
   payload: {
     [key: string]: any; // any extra keys goes as headers.
@@ -48,3 +53,20 @@ export interface StreamResponseObject {
 }
 
 export type StreamResponse = StreamResponseObject[] | [] | null | undefined;
+
+export interface RedisStreamClientModuleOptionsFactory {
+  createRedisStreamClientModuleOptions():
+    | Promise<ClientConstructorOptions>
+    | ClientConstructorOptions;
+}
+
+// for the client module .registerAsync() method
+export interface RedisStreamModuleAsyncOptions
+  extends Pick<ModuleMetadata, 'imports'> {
+  useExisting?: Type<RedisStreamClientModuleOptionsFactory>;
+  useClass?: Type<RedisStreamClientModuleOptionsFactory>;
+  useFactory?: (
+    ...args: any[]
+  ) => Promise<ClientConstructorOptions> | ClientConstructorOptions;
+  inject?: any[];
+}

@@ -35,10 +35,8 @@ export class RedisStreamStrategy
     this.handleError(this.redis);
     this.handleError(this.client);
 
-    // when server instnce connect, bind handlers.
+    // when server instance connect, bind handlers.
     this.redis.on(CONNECT_EVENT, () => {
-      // this.client.on(CONNECT_EVENT, () => {});
-
       this.logger.log(
         'Redis connected successfully on ' +
           (this.options.connection?.url ??
@@ -214,7 +212,7 @@ export class RedisStreamStrategy
 
           let parsedPayload: any;
 
-          // if custom desrializer is provided.
+          // if custom deserializer is provided.
           if (typeof this.options?.serialization?.deserializer === 'function') {
             parsedPayload = await this.options.serialization.deserializer(
               message,
@@ -260,7 +258,7 @@ export class RedisStreamStrategy
         ), // '>', this is needed for xreadgroup as id.
       );
 
-      // if BLOCK time ended, and results are null, listne again.
+      // if BLOCK time ended, and results are null, listen again.
       if (!results) return this.listenOnStreams();
 
       const [key, messages] = results[0];

@@ -6,6 +6,8 @@ import {
 } from './interfaces';
 import { RedisStreamClient } from './redis.client';
 
+const REDIS_STREAM_CLIENT_MODULE_OPTIONS = 'REDIS_STREAM_CLIENT_MODULE_OPTIONS';
+
 @Global()
 @Module({})
 export class RedisStreamClientCoreModule {
@@ -26,14 +28,22 @@ export class RedisStreamClientCoreModule {
   public static forRootAsync(
     options: RedisStreamModuleAsyncOptions,
   ): DynamicModule {
-    console.log('forRootAsync options', options);
+    const redisStreamClientProvider: Provider = {
+      provide: RedisStreamClient,
+      useFactory: (options: ClientConstructorOptions) => {
+        return new RedisStreamClient(options);
+      },
+      inject: [REDIS_STREAM_CLIENT_MODULE_OPTIONS],
+    };
 
     return {
       module: RedisStreamClientCoreModule,
       imports: options.imports,
-      providers: [...this.createAsyncProviders(options)], // here we let the logic to create the provider pending on the type of the
-      // useFactory, useClass or useExisting
-      exports: [RedisStreamClient], // this means we will export the RedisStreamClient provider
+      providers: [
+        ...this.createAsyncProviders(options),
+        redisStreamClientProvider,
+      ],
+      exports: [redisStreamClientProvider],
     };
   }
 
@@ -70,27 +80,17 @@ export class RedisStreamClientCoreModule {
     // if is a useFactory, get options then return the RedisStreamClient
     if (options.useFactory) {
       return {
-        provide: RedisStreamClient,
-        useFactory: async () => {
-          const clientOptions = await options.useFactory();
-          return new RedisStreamClient(clientOptions);
-        },
+        provide: REDIS_STREAM_CLIENT_MODULE_OPTIONS,
+        useFactory: options.useFactory,
         inject: options.inject || [],
       };
     }
 
-    // if is a useClass or useExisting,
-    // get the options from the ProvidedClass.createRedisStreamClientModuleOptions()
-    // that must be implemented by the provided class.
     return {
-      provide: RedisStreamClient,
-      async useFactory(
+      provide: REDIS_STREAM_CLIENT_MODULE_OPTIONS,
+      useFactory: async (
         optionsFactory: RedisStreamClientModuleOptionsFactory,
-      ): Promise<RedisStreamClient> {
-        const options =
-          await optionsFactory.createRedisStreamClientModuleOptions();
-        return new RedisStreamClient(options);
-      },
+      ) => optionsFactory.createRedisStreamClientModuleOptions(),
       inject: [options.useClass || options.useExisting],
     };
   }

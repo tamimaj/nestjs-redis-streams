@@ -5,6 +5,7 @@ import {
 } from '@tamimaj/nestjs-redis-streams';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
+import { ConfigModule, ConfigService } from '@nestjs/config';
 
 // Any class that implements createRedisStreamClientModuleOptions method.
 // ConfigService is a good candidate.
@@ -21,18 +22,42 @@ class ClassOptions {
 
 @Module({
   imports: [
-    // Register / forRoot.
-    RedisStreamClientModule.register({
-      connection: { url: '0.0.0.0:6379' },
-      streams: { consumer: 'api-1', block: 5000, consumerGroup: 'api' },
-      responseStreams: ['users:created', 'users:created:copy'],
+    ///////////////////////////////////
+    // SYNC CONFIGURATION
+    ///////////////////////////////////
+
+    // RedisStreamClientModule.forRoot({
+    //   connection: { url: '0.0.0.0:6379' },
+    //   streams: { consumer: 'api-1', block: 5000, consumerGroup: 'api' },
+    //   responseStreams: ['users:created', 'users:created:copy'],
+    // }),
+
+    ///////////////////////////////////////////
+    // ASYNC CONFIGURATION with ConfigModule
+    ///////////////////////////////////////////
+
+    ConfigModule.forRoot(),
+    RedisStreamClientModule.forRootAsync({
+      imports: [ConfigModule],
+      useFactory: (configService: ConfigService) => {
+        return {
+          connection: {
+            url: configService.get('REDIS_URL'),
+          },
+          streams: {
+            consumer: configService.get('REDIS_CONSUMER'),
+            consumerGroup: configService.get('REDIS_CONSUMER_GROUP'),
+            block: configService.get('REDIS_MAX_BLOCK_TIME_MS'),
+          },
+          responseStreams: ['users:created', 'users:created:copy'],
+        };
+      },
+      inject: [ConfigService],
     }),
 
-    // registerAsync / forRootAsync.
-
-    //////////////////////
-    // Use Factory.     //
-    //////////////////////
+    ///////////////////////////////////////////
+    // ASYNC CONFIGURATION with useFactory
+    ///////////////////////////////////////////
 
     // RedisStreamClientModule.registerAsync({
     //   useFactory: async () => {
@@ -44,9 +69,10 @@ class ClassOptions {
     //   },
     // }),
 
-    //////////////////////
-    // Use Class.       //
-    //////////////////////
+    ///////////////////////////////////////////////////////////////////////////
+    // ASYNC CONFIGURATION with useClass
+    // class must implement createRedisStreamClientModuleOptions method.
+    ///////////////////////////////////////////////////////////////////////////
 
     // RedisStreamClientModule.forRootAsync({
     //   useClass: ClassOptions,

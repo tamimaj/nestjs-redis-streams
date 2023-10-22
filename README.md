@@ -116,7 +116,7 @@ bootstrap();
 </p>
 
 ```ts
-import { Ctx, MessagePattern, Payload } from '@nestjs/microservices';
+import { Ctx, Payload } from '@nestjs/microservices';
 import {
   RedisStreamHandler,
   StreamResponse,
@@ -181,11 +181,12 @@ When you have your redis connection config, streams config, etc, beforehand and 
 In your app.module.ts or any other module you want to use the client to publish streams:
 
 ```ts
-import { RedisStreamsClientModule } from '@tamimaj/nestjs-redis-streams';
+import { Module } from '@nestjs/common';
+import { RedisStreamClientModule } from '@tamimaj/nestjs-redis-streams';
 
 @Module({
   imports: [
-    RedisStreamsClientModule.register({
+    RedisStreamClientModule.register({
       connection: { url: '0.0.0.0:6379' },
       streams: { consumer: 'api-1', block: 5000, consumerGroup: 'api' },
       responseStreams: ['users:created', 'users:created:copy'],
@@ -204,12 +205,14 @@ When you don't have your redis connection config, streams config, beforehand, or
 In your app.module.ts or any other module you want to use the client to publish streams:
 
 ```ts
-import { RedisStreamsClientModule } from '@tamimaj/nestjs-redis-streams';
+import { Module } from '@nestjs/common';
+import { RedisStreamClientModule } from '@tamimaj/nestjs-redis-streams';
+import { ConfigModule, ConfigService } from '@nestjs/config';
 
 @Module({
   // more examples about useClass, useFactory, in the example client app.
   imports: [
-    RedisStreamsClientModule.registerAsync({
+    RedisStreamClientModule.registerAsync({
       imports: [ConfigModule],
       useFactory: async (configService: ConfigService) => ({
         connection: configService.get('REDIS_CONNECTION'),
@@ -236,18 +239,21 @@ Check the example app to see how to use the client to publish streams.
 In your service or controller:
 
 ```ts
+import { Controller, Get } from '@nestjs/common';
 import { RedisStreamClient } from '@tamimaj/nestjs-redis-streams';
+import { lastValueFrom } from 'rxjs';
 
 @Controller()
 export class AppController {
   constructor(private readonly redisStreamClient: RedisStreamClient) {} // inject the client.
 
+  @Get('/send')
   async sendMessage(): Promise<any> {
     // send a message and get a response.
 
     const observable = this.redisStreamClient.send('stream:name:here', {
       data: { name: 'tamim' }, // will be JSON.stringify() and stored in the data key.
-      anyOtherHeadersKey: 'anyOtherHeadersValue', // header key, will  be kept as key/value.
+      anyOtherHeadersKey: 'anyOtherHeadersValue', // header key, will be kept as key/value.
     });
 
     const response = await lastValueFrom(observable); // get the last value from the observable.
@@ -266,6 +272,7 @@ export class AppController {
 In your service or controller:
 
 ```ts
+import { Controller, Get } from '@nestjs/common';
 import { RedisStreamClient } from '@tamimaj/nestjs-redis-streams';
 
 @Controller()
@@ -273,11 +280,11 @@ export class AppController {
   constructor(private readonly redisStreamClient: RedisStreamClient) {} // inject the client.
 
   @Get('/emit')
-  async getHelloEmit(): Promise<any> {
+  async emitMessage(): Promise<any> {
     // emit a message and don't wait for a response.
     // fire and forget.
 
-    const observable = this.redisStreamClient.emit('stream:name:here', {
+    this.redisStreamClient.emit('stream:name:here', {
       data: { name: 'tamim', fireAndForgetEvent: true }, // main key.
       anyOtherHeadersKey: 'anyOtherHeadersValue', // header key, will  be kept as key/value.
     });

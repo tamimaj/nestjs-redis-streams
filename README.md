@@ -97,6 +97,7 @@ async function bootstrap() {
         block: 5000,
         consumer: 'users-1',
         consumerGroup: 'users',
+        deleteMessagesAfterAck: true,  // optional: delete message from stream
       },
       // optional. See our example main.ts file for more details...
       // serialization: {},

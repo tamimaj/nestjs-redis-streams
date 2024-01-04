@@ -15,6 +15,7 @@ interface RedisStreamOptionsXreadGroup {
   block?: number;
   consumerGroup: string;
   consumer: string;
+  deleteAfterAck?: boolean;
 }
 
 export type RedisStreamOptions = RedisStreamOptionsXreadGroup;

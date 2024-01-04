@@ -153,6 +153,13 @@ export class RedisStreamStrategy
         inboundContext.getMessageId(),
       );
 
+      if (true === this.options?.streams?.deleteAfterAck) {
+        await this.client.xdel(
+          inboundContext.getStream(),
+          inboundContext.getMessageId(),
+        );
+      }
+
       return true;
     } catch (error) {
       this.logger.error(error);

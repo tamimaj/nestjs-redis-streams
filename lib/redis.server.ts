@@ -153,7 +153,7 @@ export class RedisStreamStrategy
         inboundContext.getMessageId(),
       );
 
-      if (true === this.options?.streams?.deleteAfterAck) {
+      if (true === this.options?.streams?.deleteMessagesAfterAck) {
         await this.client.xdel(
           inboundContext.getStream(),
           inboundContext.getMessageId(),

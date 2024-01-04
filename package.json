@@ -1,5 +1,5 @@
 {
-  "name": "@tamimaj/nestjs-redis-streams",
+  "name": "@lacedorium/nestjs-redis-streams",
   "version": "1.0.2",
   "description": "Redis Streams Transport for NestJS.",
   "author": "Tamim Abbas Aljuratli <https://tamim.es>",
@@ -19,7 +19,7 @@
   },
   "repository": {
     "type": "git",
-    "url": "https://github.com/tamimaj/nestjs-redis-streams.git"
+    "url": "https://github.com/lacedorium/nestjs-redis-streams.git"
   },
   "keywords": [
     "nest",
@@ -33,9 +33,9 @@
     "nest redis streams transport"
   ],
   "bugs": {
-    "url": "https://github.com/tamimaj/nestjs-redis-streams/issues"
+    "url": "https://github.com/lacedorium/nestjs-redis-streams/issues"
   },
-  "homepage": "https://github.com/tamimaj/nestjs-redis-streams#readme",
+  "homepage": "https://github.com/lacedorium/nestjs-redis-streams#readme",
   "dependencies": {
     "@nestjs/common": "^9.0.0",
     "@nestjs/microservices": "^9.0.0",

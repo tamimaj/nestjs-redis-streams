@@ -10,6 +10,7 @@ export function createRedisConnection(
   if (connection?.url) {
     return new Redis(connection?.url, connection);
   } else {
-    return new Redis(connection);
+    // TODO appropriate verification is required when the connection is undefined.
+    return new Redis(connection!);
   }
 }

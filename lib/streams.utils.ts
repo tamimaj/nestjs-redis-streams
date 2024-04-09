@@ -44,7 +44,7 @@ export async function serialize(
     return stringifiedResponse;
   } catch (error) {
     logger.error(error);
-    return null;
+    return [];
   }
 }
 
@@ -61,7 +61,7 @@ export async function parseJson(data: string): Promise<any> {
 export function parseRawMessage(rawMessage: any): any {
   let payload = rawMessage[1];
 
-  let obj = {};
+  let obj: {[key: string]: any} = {};
 
   for (let i = 0; i < payload.length; i += 2) {
     obj[payload[i]] = payload[i + 1];

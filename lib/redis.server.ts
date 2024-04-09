@@ -17,11 +17,11 @@ export class RedisStreamStrategy
   extends Server
   implements CustomTransportStrategy
 {
-  private streamHandlerMap = {};
+  private streamHandlerMap: { [key: string]: any } = {};
 
-  private redis: RedisInstance;
+  private redis: RedisInstance | null = null;
 
-  private client: RedisInstance;
+  private client: RedisInstance | null = null;
 
   constructor(private readonly options: ConstructorOptions) {
     super();
@@ -40,7 +40,9 @@ export class RedisStreamStrategy
       this.logger.log(
         'Redis connected successfully on ' +
           (this.options.connection?.url ??
-            this.options.connection.host + ':' + this.options.connection.port),
+            this.options.connection?.host +
+              ':' +
+              this.options.connection?.port),
       );
 
       this.bindHandlers();
@@ -85,20 +87,22 @@ export class RedisStreamStrategy
       return true;
     } catch (error) {
       // JSON.parse will throw error, if is not parsable.
-      this.logger.debug(error + '. Handler Pattern is: ' + pattern);
+      this.logger.debug!(error + '. Handler Pattern is: ' + pattern);
       return false;
     }
   }
 
   private async createConsumerGroup(stream: string, consumerGroup: string) {
     try {
+      if (!this.redis) throw new Error('Redis instance not found.');
+
       await this.redis.xgroup('CREATE', stream, consumerGroup, '$', 'MKSTREAM');
 
       return true;
     } catch (error) {
       // if group exist for this stream. log debug.
-      if (error?.message.includes('BUSYGROUP')) {
-        this.logger.debug(
+      if (error instanceof Error && error.message.includes('BUSYGROUP')) {
+        this.logger.debug!(
           'Consumer Group "' +
             consumerGroup +
             '" already exists for stream: ' +
@@ -134,6 +138,8 @@ export class RedisStreamStrategy
             );
           }
 
+          if (!this.client) throw new Error('Redis client instance not found.');
+
           await this.client.xadd(responseObj.stream, '*', ...serializedEntries);
         }),
       );
@@ -147,6 +153,8 @@ export class RedisStreamStrategy
 
   private async handleAck(inboundContext: RedisStreamContext) {
     try {
+      if (!this.client) throw new Error('Redis client instance not found.');
+
       await this.client.xack(
         inboundContext.getStream(),
         inboundContext.getConsumerGroup(),
@@ -248,14 +256,16 @@ export class RedisStreamStrategy
     }
   }
 
-  private async listenOnStreams() {
+  private async listenOnStreams(): Promise<void> {
     try {
+      if (!this.redis) throw new Error('Redis instance not found.');
+
       let results: any[];
 
       results = await this.redis.xreadgroup(
         'GROUP',
-        this.options?.streams?.consumerGroup || undefined,
-        this.options?.streams?.consumer || undefined, // need to make it throw an error.
+        this.options?.streams?.consumerGroup || '',
+        this.options?.streams?.consumer || '',
         'BLOCK',
         this.options?.streams?.block || 0,
         'STREAMS',

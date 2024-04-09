@@ -1,6 +1,6 @@
 {
   "name": "@tamimaj/nestjs-redis-streams",
-  "version": "1.0.4",
+  "version": "1.0.5",
   "description": "Redis Streams Transport for NestJS.",
   "author": "Tamim Abbas Aljuratli <https://tamim.es>",
   "private": false,
@@ -50,6 +50,7 @@
     "@types/jest": "28.1.8",
     "@types/node": "^16.0.0",
     "@types/supertest": "^2.0.11",
+    "@types/uuid": "^9.0.8",
     "@typescript-eslint/eslint-plugin": "^5.0.0",
     "@typescript-eslint/parser": "^5.0.0",
     "eslint": "^8.0.1",

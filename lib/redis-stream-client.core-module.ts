@@ -57,14 +57,13 @@ export class RedisStreamClientCoreModule {
       );
     }
 
-    if (options.useExisting || options.useFactory) {
-      return [this.createAsyncClientProvider(options)];
+    const providers: Provider[] = [this.createAsyncClientProvider(options)];
+
+    if (!options.useExisting && !options.useFactory && options.useClass) {
+      providers.push({ provide: options.useClass, useClass: options.useClass });
     }
 
-    return [
-      this.createAsyncClientProvider(options),
-      { provide: options.useClass, useClass: options.useClass },
-    ];
+    return providers
   }
 
   /* createAsyncOptionsProvider */
@@ -86,12 +85,18 @@ export class RedisStreamClientCoreModule {
       };
     }
 
+    const inject = options.useClass
+      ? [options.useClass]
+      : options.useExisting
+      ? [options.useExisting]
+      : []
+
     return {
       provide: REDIS_STREAM_CLIENT_MODULE_OPTIONS,
       useFactory: async (
         optionsFactory: RedisStreamClientModuleOptionsFactory,
       ) => optionsFactory.createRedisStreamClientModuleOptions(),
-      inject: [options.useClass || options.useExisting],
+      inject,
     };
   }
 }

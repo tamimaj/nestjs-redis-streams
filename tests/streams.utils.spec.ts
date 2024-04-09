@@ -39,7 +39,7 @@ describe('[Stream Utils]', () => {
         let r = await serialize(data, ctx);
         throw new Error("didn't throw for non existing data");
       } catch (error) {
-        expect(error.toString()).toContain(
+        expect((error as Error).toString()).toContain(
           "Could not find the 'data' key in the payload.",
         );
       }
@@ -71,7 +71,7 @@ describe('[Stream Utils]', () => {
         );
         throw new Error("didn't throw for non existing data");
       } catch (error) {
-        expect(error.toString()).toContain(
+        expect((error as Error).toString()).toContain(
           "Could not find the 'data' key in the message.",
         );
       }
@@ -105,7 +105,7 @@ describe('[Stream Utils]', () => {
     test('returns null and logs an error for invalid input', () => {
       const invalidInput = null;
 
-      const output = stringifyMessage(invalidInput);
+      const output = stringifyMessage(invalidInput as any);
       expect(output).toEqual([]);
     });
   });

@@ -12,11 +12,11 @@ import { firstValueFrom, share } from 'rxjs';
 export class RedisStreamClient extends ClientProxy {
   protected readonly logger = new Logger(RedisStreamClient.name);
 
-  private redis: RedisInstance; // server instance for listening on response streams.
+  private redis: RedisInstance | null = null; // server instance for listening on response streams.
 
-  private client: RedisInstance; // client instance for publishing streams.
+  private client: RedisInstance | null = null; // client instance for publishing streams.
 
-  protected connection: Promise<any>; // client connection logic is required by framework.
+  protected connection: Promise<any> | null = null; // client connection logic is required by framework.
 
   private streamsToListenOn: string[] = []; // response streams to listen on.
 
@@ -40,9 +40,9 @@ export class RedisStreamClient extends ClientProxy {
         this.logger.log(
           'Redis Client Responses Listener connected successfully on ' +
             (this.options.connection?.url ??
-              this.options.connection.host +
+              this.options.connection?.host +
                 ':' +
-                this.options.connection.port),
+                this.options.connection?.port),
         );
 
         this.initListener();
@@ -102,6 +102,8 @@ export class RedisStreamClient extends ClientProxy {
 
   public async handleXadd(stream: string, serializedPayloadArray: any[]) {
     try {
+      if (!this.client) throw new Error('Redis client instance not found.');
+
       let response = await this.client.xadd(
         stream,
         '*',
@@ -222,12 +224,14 @@ export class RedisStreamClient extends ClientProxy {
 
   private async createConsumerGroup(stream: string, consumerGroup: string) {
     try {
+      if (!this.redis) throw new Error('Redis instance not found.');
+
       await this.redis.xgroup('CREATE', stream, consumerGroup, '$', 'MKSTREAM');
 
       return true;
     } catch (error) {
       // if group exist for this stream. log debug.
-      if (error?.message.includes('BUSYGROUP')) {
+      if (error instanceof Error && error?.message.includes('BUSYGROUP')) {
         this.logger.debug(
           'Consumer Group "' +
             consumerGroup +
@@ -242,14 +246,16 @@ export class RedisStreamClient extends ClientProxy {
     }
   }
 
-  private async listenOnStreams() {
+  private async listenOnStreams(): Promise<void> {
     try {
+      if (!this.redis) throw new Error('Redis instance not found.');
+
       let results: any[];
 
       results = await this.redis.xreadgroup(
         'GROUP',
-        this.options?.streams?.consumerGroup || undefined,
-        this.options?.streams?.consumer || undefined, // need to make it throw an error.
+        this.options?.streams?.consumerGroup || '',
+        this.options?.streams?.consumer || '',
         'BLOCK',
         this.options?.streams?.block || 0,
         'STREAMS',
@@ -315,8 +321,8 @@ export class RedisStreamClient extends ClientProxy {
 
   // after message
   private async deliverToHandler(
-    correlationId,
-    parsedPayload,
+    correlationId: string,
+    parsedPayload: any,
     ctx: RedisStreamContext,
   ) {
     try {
@@ -369,6 +375,8 @@ export class RedisStreamClient extends ClientProxy {
 
   private async handleAck(inboundContext: RedisStreamContext) {
     try {
+      if (!this.client) throw new Error('Redis client instance not found.');
+
       await this.client.xack(
         inboundContext.getStream(),
         inboundContext.getConsumerGroup(),

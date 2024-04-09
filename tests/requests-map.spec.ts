@@ -7,10 +7,6 @@ describe('RequestsMap', () => {
     requestsMap = new RequestsMap();
   });
 
-  afterEach(() => {
-    requestsMap = null;
-  });
-
   describe('addEntry', () => {
     it('should add an entry to the map', () => {
       const handler = jest.fn();

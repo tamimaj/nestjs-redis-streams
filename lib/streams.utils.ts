@@ -44,7 +44,7 @@ export async function serialize(
     return stringifiedResponse;
   } catch (error) {
     logger.error(error);
-    return null;
+    return [];
   }
 }
 
@@ -58,10 +58,10 @@ export async function parseJson(data: string): Promise<any> {
   }
 }
 
-export function parseRawMessage(rawMessage: any): any {
+export function parseRawMessage(rawMessage: any): Record<string, any> {
   let payload = rawMessage[1];
 
-  let obj = {};
+  let obj: Record<string, any> = {};
 
   for (let i = 0; i < payload.length; i += 2) {
     obj[payload[i]] = payload[i + 1];
@@ -70,9 +70,9 @@ export function parseRawMessage(rawMessage: any): any {
   return obj;
 }
 
-export function stringifyMessage(messageObj: any): any {
+export function stringifyMessage(messageObj: Record<string, string>): string[] {
   try {
-    let finalArray = [];
+    let finalArray: string[] = [];
 
     for (let key in messageObj) {
       finalArray.push(key);
@@ -82,7 +82,7 @@ export function stringifyMessage(messageObj: any): any {
     return finalArray;
   } catch (error) {
     logger.error(error);
-    return null;
+    return [];
   }
 }
 

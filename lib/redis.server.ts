@@ -20,7 +20,7 @@ export class RedisStreamStrategy
   private streamHandlerMap: { [key: string]: any } = {};
 
   private redis: RedisInstance | null = null;
-  
+
   private client: RedisInstance | null = null;
 
   constructor(private readonly options: ConstructorOptions) {
@@ -40,7 +40,9 @@ export class RedisStreamStrategy
       this.logger.log(
         'Redis connected successfully on ' +
           (this.options.connection?.url ??
-            this.options.connection?.host + ':' + this.options.connection?.port),
+            this.options.connection?.host +
+              ':' +
+              this.options.connection?.port),
       );
 
       this.bindHandlers();
@@ -263,7 +265,7 @@ export class RedisStreamStrategy
       results = await this.redis.xreadgroup(
         'GROUP',
         this.options?.streams?.consumerGroup || '',
-        this.options?.streams?.consumer || '', // need to make it throw an error.
+        this.options?.streams?.consumer || '',
         'BLOCK',
         this.options?.streams?.block || 0,
         'STREAMS',

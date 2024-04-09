@@ -225,7 +225,7 @@ export class RedisStreamClient extends ClientProxy {
   private async createConsumerGroup(stream: string, consumerGroup: string) {
     try {
       if (!this.redis) throw new Error('Redis instance not found.');
-      
+
       await this.redis.xgroup('CREATE', stream, consumerGroup, '$', 'MKSTREAM');
 
       return true;
@@ -249,13 +249,13 @@ export class RedisStreamClient extends ClientProxy {
   private async listenOnStreams(): Promise<void> {
     try {
       if (!this.redis) throw new Error('Redis instance not found.');
-      
+
       let results: any[];
 
       results = await this.redis.xreadgroup(
         'GROUP',
         this.options?.streams?.consumerGroup || '',
-        this.options?.streams?.consumer || '', // need to make it throw an error.
+        this.options?.streams?.consumer || '',
         'BLOCK',
         this.options?.streams?.block || 0,
         'STREAMS',

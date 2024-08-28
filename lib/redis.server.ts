@@ -96,6 +96,8 @@ export class RedisStreamStrategy
     try {
       if (!this.redis) throw new Error('Redis instance not found.');
 
+      console.log('Creating consumer group: ', consumerGroup, stream);
+
       await this.redis.xgroup('CREATE', stream, consumerGroup, '$', 'MKSTREAM');
 
       return true;
@@ -259,6 +261,7 @@ export class RedisStreamStrategy
   private async listenOnStreams(): Promise<void> {
     try {
       if (!this.redis) throw new Error('Redis instance not found.');
+      console.log('Listening on streams: ', Object.keys(this.streamHandlerMap));
 
       let results: any[];
 
@@ -285,6 +288,7 @@ export class RedisStreamStrategy
 
       return this.listenOnStreams();
     } catch (error) {
+      console.log('Error in listenOnStreams: ', error);
       this.logger.error(error);
     }
   }

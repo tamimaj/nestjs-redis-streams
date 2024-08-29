@@ -272,10 +272,14 @@ export class RedisStreamStrategy
         'BLOCK',
         this.options?.streams?.block || 0,
         'STREAMS',
-        ...(Object.keys(this.streamHandlerMap) as string[]), // streams keys
-        ...(Object.keys(this.streamHandlerMap) as string[]).map(
-          (stream: string) => '>',
-        ), // '>', this is needed for xreadgroup as id.
+        ...(Object.keys(this.streamHandlerMap).map((s) =>
+          this.stripPrefix(s),
+        ) as string[]), // streams keys
+        ...(
+          Object.keys(this.streamHandlerMap).map((s) =>
+            this.stripPrefix(s),
+          ) as string[]
+        ).map((stream: string) => '>'), // '>', this is needed for xreadgroup as id.
       );
 
       // if BLOCK time ended, and results are null, listen again.
@@ -291,6 +295,16 @@ export class RedisStreamStrategy
       console.log('Error in listenOnStreams: ', error);
       this.logger.error(error);
     }
+  }
+
+  // When the stream handler name is stored in streamHandlerMap, its stored WITH the key prefix, so sending additional redis commands when using the prefix with the existing key will cause a duplicate prefix. This ensures to strip the first occurrence of the prefix when binding listeners.
+  private stripPrefix(streamHandlerName: string) {
+    const keyPrefix = this?.redis?.options?.keyPrefix;
+    if (!keyPrefix || !streamHandlerName.startsWith(keyPrefix)) {
+      return streamHandlerName;
+    }
+    // Replace just the first instance of the substring
+    return streamHandlerName.replace(keyPrefix, '');
   }
 
   // for redis instances. need to add mechanism to try to connect back.

@@ -96,9 +96,10 @@ export class RedisStreamStrategy
     try {
       if (!this.redis) throw new Error('Redis instance not found.');
 
+      const modifiedStreamKey = this.prependPrefix(stream);
       console.log('Creating consumer group: ', consumerGroup, stream);
 
-      await this.redis.xgroup('CREATE', stream, consumerGroup, '$', 'MKSTREAM');
+      await this.redis.xgroup('CREATE', modifiedStreamKey, consumerGroup, '$', 'MKSTREAM');
 
       return true;
     } catch (error) {
@@ -216,12 +217,13 @@ export class RedisStreamStrategy
 
   private async notifyHandlers(stream: string, messages: any[]) {
     try {
-      const handler = this.streamHandlerMap[stream];
+      const modifiedStream = this.stripPrefix(stream);
+      const handler = this.streamHandlerMap[modifiedStream];
 
       await Promise.all(
         messages.map(async (message) => {
           let ctx = new RedisStreamContext([
-            stream,
+            modifiedStream,
             message[0], // message id needed for ACK.
             this.options?.streams?.consumerGroup,
             this.options?.streams?.consumer,
@@ -305,6 +307,17 @@ export class RedisStreamStrategy
     }
     // Replace just the first instance of the substring
     return streamHandlerName.replace(keyPrefix, '');
+  }
+
+  // xgroup CREATE command with ioredis does not automatically prefix the keyPrefix, though many other commands do, such as xreadgroup.
+  // https://github.com/redis/ioredis/issues/1659
+  private prependPrefix(key: string) {
+    const keyPrefix = this?.redis?.options?.keyPrefix;
+    if(keyPrefix && !key.startsWith(keyPrefix)){
+      return `${keyPrefix}${key}`
+    } else {
+      return key
+    }
   }
 
   // for redis instances. need to add mechanism to try to connect back.

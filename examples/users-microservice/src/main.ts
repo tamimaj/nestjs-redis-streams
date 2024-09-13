@@ -11,7 +11,7 @@ async function bootstrap() {
     strategy: new RedisStreamStrategy({
       connection: {
         url: '0.0.0.0:6379',
-        keyPrefix: 'my-key-prefix',
+        // keyPrefix: 'my-key-prefix:',
       },
       streams: {
         block: 5000,

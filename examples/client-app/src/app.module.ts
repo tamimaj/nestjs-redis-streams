@@ -14,7 +14,7 @@ class ClassOptions {
   createRedisStreamClientModuleOptions(): ClientConstructorOptions {
     return {
       streams: { consumer: 'api-1', block: 5000, consumerGroup: 'api' },
-      connection: { url: '0.0.0.0:6379', keyPrefix: 'my-key-prefix' },
+      connection: { url: '0.0.0.0:6379' },
       responseStreams: ['users:created', 'users:created:copy'],
     };
   }

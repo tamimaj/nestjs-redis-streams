@@ -97,9 +97,14 @@ export class RedisStreamStrategy
       if (!this.redis) throw new Error('Redis instance not found.');
 
       const modifiedStreamKey = this.prependPrefix(stream);
-      console.log('Creating consumer group: ', consumerGroup, stream);
 
-      await this.redis.xgroup('CREATE', modifiedStreamKey, consumerGroup, '$', 'MKSTREAM');
+      await this.redis.xgroup(
+        'CREATE',
+        modifiedStreamKey,
+        consumerGroup,
+        '$',
+        'MKSTREAM',
+      );
 
       return true;
     } catch (error) {
@@ -109,7 +114,7 @@ export class RedisStreamStrategy
           'Consumer Group "' +
             consumerGroup +
             '" already exists for stream: ' +
-            stream,
+            this.prependPrefix(stream),
         );
         return true;
       } else {
@@ -263,7 +268,6 @@ export class RedisStreamStrategy
   private async listenOnStreams(): Promise<void> {
     try {
       if (!this.redis) throw new Error('Redis instance not found.');
-      console.log('Listening on streams: ', Object.keys(this.streamHandlerMap));
 
       let results: any[];
 
@@ -313,10 +317,10 @@ export class RedisStreamStrategy
   // https://github.com/redis/ioredis/issues/1659
   private prependPrefix(key: string) {
     const keyPrefix = this?.redis?.options?.keyPrefix;
-    if(keyPrefix && !key.startsWith(keyPrefix)){
-      return `${keyPrefix}${key}`
+    if (keyPrefix && !key.startsWith(keyPrefix)) {
+      return `${keyPrefix}${key}`;
     } else {
-      return key
+      return key;
     }
   }
 

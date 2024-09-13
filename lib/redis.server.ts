@@ -96,9 +96,10 @@ export class RedisStreamStrategy
     try {
       if (!this.redis) throw new Error('Redis instance not found.');
 
+      const modifiedStreamKey = this.prependPrefix(stream);
       console.log('Creating consumer group: ', consumerGroup, stream);
 
-      await this.redis.xgroup('CREATE', stream, consumerGroup, '$', 'MKSTREAM');
+      await this.redis.xgroup('CREATE', modifiedStreamKey, consumerGroup, '$', 'MKSTREAM');
 
       return true;
     } catch (error) {
@@ -216,12 +217,13 @@ export class RedisStreamStrategy
 
   private async notifyHandlers(stream: string, messages: any[]) {
     try {
-      const handler = this.streamHandlerMap[stream];
+      const modifiedStream = this.stripPrefix(stream);
+      const handler = this.streamHandlerMap[modifiedStream];
 
       await Promise.all(
         messages.map(async (message) => {
           let ctx = new RedisStreamContext([
-            stream,
+            modifiedStream,
             message[0], // message id needed for ACK.
             this.options?.streams?.consumerGroup,
             this.options?.streams?.consumer,
@@ -272,10 +274,14 @@ export class RedisStreamStrategy
         'BLOCK',
         this.options?.streams?.block || 0,
         'STREAMS',
-        ...(Object.keys(this.streamHandlerMap) as string[]), // streams keys
-        ...(Object.keys(this.streamHandlerMap) as string[]).map(
-          (stream: string) => '>',
-        ), // '>', this is needed for xreadgroup as id.
+        ...(Object.keys(this.streamHandlerMap).map((s) =>
+          this.stripPrefix(s),
+        ) as string[]), // streams keys
+        ...(
+          Object.keys(this.streamHandlerMap).map((s) =>
+            this.stripPrefix(s),
+          ) as string[]
+        ).map((stream: string) => '>'), // '>', this is needed for xreadgroup as id.
       );
 
       // if BLOCK time ended, and results are null, listen again.
@@ -290,6 +296,27 @@ export class RedisStreamStrategy
     } catch (error) {
       console.log('Error in listenOnStreams: ', error);
       this.logger.error(error);
+    }
+  }
+
+  // When the stream handler name is stored in streamHandlerMap, its stored WITH the key prefix, so sending additional redis commands when using the prefix with the existing key will cause a duplicate prefix. This ensures to strip the first occurrence of the prefix when binding listeners.
+  private stripPrefix(streamHandlerName: string) {
+    const keyPrefix = this?.redis?.options?.keyPrefix;
+    if (!keyPrefix || !streamHandlerName.startsWith(keyPrefix)) {
+      return streamHandlerName;
+    }
+    // Replace just the first instance of the substring
+    return streamHandlerName.replace(keyPrefix, '');
+  }
+
+  // xgroup CREATE command with ioredis does not automatically prefix the keyPrefix, though many other commands do, such as xreadgroup.
+  // https://github.com/redis/ioredis/issues/1659
+  private prependPrefix(key: string) {
+    const keyPrefix = this?.redis?.options?.keyPrefix;
+    if(keyPrefix && !key.startsWith(keyPrefix)){
+      return `${keyPrefix}${key}`
+    } else {
+      return key
     }
   }
 

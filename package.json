@@ -1,6 +1,6 @@
 {
   "name": "@tamimaj/nestjs-redis-streams",
-  "version": "1.1.0",
+  "version": "1.2.0",
   "description": "Redis Streams Transport for NestJS.",
   "author": "Tamim Abbas Aljuratli <https://tamim.es>",
   "private": false,

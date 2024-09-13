@@ -13,7 +13,12 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
 class ClassOptions {
   createRedisStreamClientModuleOptions(): ClientConstructorOptions {
     return {
-      streams: { consumer: 'api-1', block: 5000, consumerGroup: 'api' },
+      streams: {
+        consumer: 'api-1',
+        block: 5000,
+        consumerGroup: 'api',
+        // maxLen: 100,
+      },
       connection: { url: '0.0.0.0:6379' },
       responseStreams: ['users:created', 'users:created:copy'],
     };

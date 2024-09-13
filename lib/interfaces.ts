@@ -18,7 +18,11 @@ interface RedisStreamOptionsXreadGroup {
   deleteMessagesAfterAck?: boolean;
 }
 
-export type RedisStreamOptions = RedisStreamOptionsXreadGroup;
+interface RedisStreamOptionsXadd {
+  maxLen?: number;
+}
+
+export type RedisStreamOptions = RedisStreamOptionsXreadGroup & RedisStreamOptionsXadd;
 
 // [id, [key, value, key, value]]
 export type RawStreamMessage = [id: string, payload: string[]];

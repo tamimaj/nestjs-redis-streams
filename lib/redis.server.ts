@@ -12,6 +12,7 @@ import { CONNECT_EVENT, ERROR_EVENT } from '@nestjs/microservices/constants';
 import { deserialize, serialize } from './streams.utils';
 import { RedisStreamContext } from './stream.context';
 import { Observable } from 'rxjs';
+import { RedisValue } from 'ioredis';
 
 export class RedisStreamStrategy
   extends Server
@@ -140,7 +141,19 @@ export class RedisStreamStrategy
 
           if (!this.client) throw new Error('Redis client instance not found.');
 
-          await this.client.xadd(responseObj.stream, '*', ...serializedEntries);
+          const commandArgs: RedisValue[] = [];
+          if(this.options.streams?.maxLen){
+            commandArgs.push("MAXLEN")
+            commandArgs.push("~")
+            commandArgs.push(this.options.streams.maxLen.toString())
+          }
+          commandArgs.push("*")
+          
+          await this.client.xadd(
+            responseObj.stream,
+            ...commandArgs,
+            ...serializedEntries,
+          );
         }),
       );
 

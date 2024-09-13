@@ -7,6 +7,7 @@ import { RequestsMap } from './requests-map';
 import { deserialize, generateCorrelationId, serialize } from './streams.utils';
 import { RedisStreamContext } from './stream.context';
 import { firstValueFrom, share } from 'rxjs';
+import { RedisValue } from 'ioredis';
 
 @Injectable()
 export class RedisStreamClient extends ClientProxy {
@@ -104,9 +105,16 @@ export class RedisStreamClient extends ClientProxy {
     try {
       if (!this.client) throw new Error('Redis client instance not found.');
 
+      const commandArgs: RedisValue[] = [];
+      if(this.options.streams?.maxLen){
+        commandArgs.push("MAXLEN")
+        commandArgs.push("~")
+        commandArgs.push(this.options.streams.maxLen.toString())
+      }
+      commandArgs.push("*")
       let response = await this.client.xadd(
         stream,
-        '*',
+        ...commandArgs,
         ...serializedPayloadArray,
       );
       return response;

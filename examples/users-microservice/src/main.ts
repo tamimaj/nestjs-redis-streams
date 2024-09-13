@@ -17,6 +17,7 @@ async function bootstrap() {
         block: 5000,
         consumer: 'users-1',
         consumerGroup: 'users',
+        // maxLen: 100,
       },
 
       // serialization: {

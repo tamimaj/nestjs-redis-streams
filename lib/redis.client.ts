@@ -1,6 +1,6 @@
 import { ClientProxy, ReadPacket, WritePacket } from '@nestjs/microservices';
 import { Injectable, Logger } from '@nestjs/common';
-import { CONNECT_EVENT, ERROR_EVENT } from '@nestjs/microservices/constants';
+import { RedisEventsMap } from '@nestjs/microservices/events/redis.events';
 import { ClientConstructorOptions, RedisInstance } from './interfaces';
 import { createRedisConnection } from './redis.utils';
 import { RequestsMap } from './requests-map';
@@ -37,7 +37,7 @@ export class RedisStreamClient extends ClientProxy {
       this.handleError(this.redis);
 
       // when server instance connect, bind handlers.
-      this.redis.on(CONNECT_EVENT, () => {
+      this.redis.on(RedisEventsMap.CONNECT, () => {
         this.logger.log(
           'Redis Client Responses Listener connected successfully on ' +
             (this.options.connection?.url ??
@@ -69,7 +69,7 @@ export class RedisStreamClient extends ClientProxy {
 
     this.client = createRedisConnection(this.options?.connection);
     this.connection = await firstValueFrom(
-      this.connect$(this.client, ERROR_EVENT, CONNECT_EVENT).pipe(share()),
+      this.connect$(this.client, RedisEventsMap.ERROR, RedisEventsMap.CONNECT).pipe(share()),
     );
     this.handleError(this.client);
     return this.connection;
@@ -408,9 +408,13 @@ export class RedisStreamClient extends ClientProxy {
   }
 
   public handleError(stream: any) {
-    stream.on(ERROR_EVENT, (err: any) => {
+    stream.on(RedisEventsMap.ERROR, (err: any) => {
       this.logger.error('Redis Streams Client ' + err);
       this.close();
     });
+  }
+
+  public unwrap<T>(): T {
+    return this.client as T;
   }
 }

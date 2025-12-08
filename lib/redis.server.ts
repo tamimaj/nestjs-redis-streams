@@ -8,7 +8,7 @@ import {
 } from './interfaces';
 
 import { createRedisConnection } from './redis.utils';
-import { CONNECT_EVENT, ERROR_EVENT } from '@nestjs/microservices/constants';
+import { RedisEventsMap } from '@nestjs/microservices/events/redis.events';
 import { deserialize, serialize } from './streams.utils';
 import { RedisStreamContext } from './stream.context';
 import { Observable } from 'rxjs';
@@ -37,7 +37,7 @@ export class RedisStreamStrategy
     this.handleError(this.client);
 
     // when server instance connect, bind handlers.
-    this.redis.on(CONNECT_EVENT, () => {
+    this.redis.on(RedisEventsMap.CONNECT, () => {
       this.logger.log(
         'Redis connected successfully on ' +
           (this.options.connection?.url ??
@@ -150,13 +150,13 @@ export class RedisStreamStrategy
           if (!this.client) throw new Error('Redis client instance not found.');
 
           const commandArgs: RedisValue[] = [];
-          if(this.options.streams?.maxLen){
-            commandArgs.push("MAXLEN")
-            commandArgs.push("~")
-            commandArgs.push(this.options.streams.maxLen.toString())
+          if (this.options.streams?.maxLen) {
+            commandArgs.push('MAXLEN');
+            commandArgs.push('~');
+            commandArgs.push(this.options.streams.maxLen.toString());
           }
-          commandArgs.push("*")
-          
+          commandArgs.push('*');
+
           await this.client.xadd(
             responseObj.stream,
             ...commandArgs,
@@ -339,7 +339,7 @@ export class RedisStreamStrategy
 
   // for redis instances. need to add mechanism to try to connect back.
   public handleError(stream: any) {
-    stream.on(ERROR_EVENT, (err: any) => {
+    stream.on(RedisEventsMap.ERROR, (err: any) => {
       this.logger.error('Redis instance error: ' + err);
       this.close();
     });
@@ -349,5 +349,19 @@ export class RedisStreamStrategy
     // shut down instances.
     this.redis && this.redis.quit();
     this.client && this.client.quit();
+  }
+
+  public on<
+    EventKey extends string = string,
+    EventCallback extends Function = Function,
+  >(event: EventKey, callback: EventCallback): this {
+    if (this.redis) {
+      this.redis.on(event, callback as unknown as (...args: unknown[]) => void);
+    }
+    return this;
+  }
+
+  public unwrap<T>(): T {
+    return this.redis as T;
   }
 }

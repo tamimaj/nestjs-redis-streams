@@ -1,6 +1,6 @@
 import { RedisStreamContext } from './stream.context';
 import { Logger } from '@nestjs/common';
-import { v4 as uuidv4 } from 'uuid';
+import { randomUUID } from 'node:crypto';
 
 let logger = new Logger('RedisStreams/streams-utils');
 
@@ -87,5 +87,5 @@ export function stringifyMessage(messageObj: Record<string, string>): string[] {
 }
 
 export function generateCorrelationId() {
-  return uuidv4();
+  return randomUUID();
 }

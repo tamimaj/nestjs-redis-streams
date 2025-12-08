@@ -37,14 +37,13 @@
   },
   "homepage": "https://github.com/tamimaj/nestjs-redis-streams#readme",
   "dependencies": {
-    "@nestjs/common": "^9.4.3",
-    "@nestjs/microservices": "^9.4.3",
+    "@nestjs/common": "^11.1.9",
+    "@nestjs/microservices": "^11.1.9",
     "ioredis": "^5.4.1",
-    "rxjs": "^7.8.1",
-    "uuid": "^9.0.1"
+    "rxjs": "^7.8.2"
   },
   "devDependencies": {
-    "@nestjs/testing": "^9.4.3",
+    "@nestjs/testing": "^11.1.9",
     "@types/express": "^4.17.21",
     "@types/jest": "28.1.8",
     "@types/node": "^16.18.101",
